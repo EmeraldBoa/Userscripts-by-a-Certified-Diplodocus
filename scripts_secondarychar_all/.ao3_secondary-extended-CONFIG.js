@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         =ØàÞ AO3: secondary char&pairing filter CONFIG
+// @name         ðŸ›  AO3: secondary char&pairing filter CONFIG
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
 // @version      1.0
 // @description  Config script for AO3 secondary character&relationship filter - EXTENDED
@@ -61,7 +61,7 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
         xRelLim: 3, //   ...within the first X relationship tags (0: do nothing)
         xCharLim: 1, // ...within the first Y character tags    (0: do nothing)
 
-        /*( & don't use to block tags completely: AO3 savior will be faster  &)
+        /*(âš  don't use to block tags completely: AO3 savior will be faster âš )
 
         //----------------------------------------------------------------------------------------------------
 

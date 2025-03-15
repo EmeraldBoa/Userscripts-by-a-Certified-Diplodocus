@@ -47,10 +47,11 @@
     let multiLanguages = ['ptBR', 'ptPT', 'sux']
     let defaultLanguage = 'es'
 
+    /*
     - bold myLanguages in main list
     - bold multiLanguages in shortened list
     - show main languages only, ignore multilanguages
-
+    */
     // ===============================================================================================================================
 
     if (multiLanguages.some(Boolean)==false) {
