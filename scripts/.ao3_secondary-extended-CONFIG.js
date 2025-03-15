@@ -19,6 +19,7 @@ https://commons.wikimedia.org/wiki/File:Cib-archive-of-our-own_(CoreUI_Icons_v1.
 Currently active on works/* and tags/* pages. To also enable on user pages, add the following line in the header:
     // @match        http*://archiveofourown.org/users/*
 '------------------------------------------------------------------------------------------------------------------*/
+// TODO: rewrite & simplify examples
 
 (function() {
     'use strict';

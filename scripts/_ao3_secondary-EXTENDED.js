@@ -17,6 +17,8 @@
 
 Currently active on works/* and tags/* pages. To also enable on user pages, add the following line in the header:
     // @match        http*://archiveofourown.org/users/*
+
+// TODO: list functions and changes from scriptfairy's version
 '------------------------------------------------------------------------------------------------------------------*/
 (function() {
     'use strict'
@@ -49,26 +51,22 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
         for (let i=0; i < works.length; i++) {
 
             // If AO3 saviour hid the work, add no further warnings
-            // TODO : consider modifying to use AO3's fold/message. Can I do this and still work when AO3s is not installed? What if it updates?
+            // TODO : consider modifying to use AO3's fold/message. Will it still work when AO3s is not installed? What if it updates?
             if (works[i].classList.contains('ao3-savior-work')) { continue } // go to next work
 
             // Get first n relationships/characters and check if any are in the user settings
-            let firstNrels, firstNchars
-            firstNrels = (checkRels||checkXRels) ? [...works[i].querySelectorAll('.relationships')] : [] //todo: check if '.relationships' is enough, since we're in works[i]
-            firstNchars = (checkChars||checkXChars) ? [...works[i].querySelectorAll('.characters')] : []
-
-            function foundMatch (firstNtags, tagLim, userTags) {
-                firstNtags = firstNtags.slice(0, tagLim).map(tag => tag.textContent)
-                return checkTagsAgainstRegex (userTags, firstNtags)
+            function getFirstNTags (tagClassString, tagLim, xTagLim) {
+                return [...works[i].querySelectorAll(tagClassString)].slice(0, Math.max(tagLim, xTagLim)).map(tag => tag.textContent)
             }
-
-            const relMatch = checkRels ? foundMatch (firstNrels, relLim, relationships) : false ,
-                  charMatch = checkChars ? foundMatch (firstNchars, charLim, characters) : false ,
-                  xRelMatch = checkXRels ? foundMatch (firstNrels, xRelLim, excludedRelationships) : false,
-                  xCharMatch = checkXChars ? foundMatch (firstNchars, xCharLim, excludedCharacters) : false;
-            
+            const firstNrels = (checkRels||checkXRels) && getFirstNTags('.relationships', relLim, xRelLim),
+                  firstNchars = (checkChars||checkXChars) && getFirstNTags('.characters', charLim, xCharLim),
+                  relMatch = checkRels && isMatch (firstNrels, relLim, relationships),
+                  charMatch = checkChars && isMatch (firstNchars, charLim, characters),
+                  xRelMatch = checkXRels && isMatch (firstNrels, xRelLim, excludedRelationships),
+                  xCharMatch = checkXChars && isMatch (firstNchars, xCharLim, excludedCharacters);
+             
             // Hide works which don't prioritise your characters/relationships. Add explanation and "show work" button.
-            if ((relMatch || charMatch) && !(xRelMatch || xCharMatch)) { continue; } // skip if at least one match and no blacklist
+            if ((relMatch || charMatch) && !(xRelMatch || xCharMatch)) { continue } // skip if at least one match and no blacklist
             works[i].classList.add('hiddenwork');
 
             const note = createNewElement('div', 'hidereasons'),
@@ -116,8 +114,8 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
         return el
     }
 
-    // todo: should i rewrite the wildcard function?
-    function patternMatcher (userList, tagList) {
+    function isMatch (tagList, tagLim, userList) {
+        tagList = tagList.slice(0, tagLim)
         for (let userTag of userList) {
             const pattern = config.useRegex ? userTag : wildcardPattern(userTag)
             const rx = RegExp(pattern, 'gi')
@@ -129,25 +127,16 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
     }
 
     // REGEX ALTERNATIVES --------------------------------------------------------------------------------------
-
-    function checkTagsAgainstRegex (userList, tagList) {
-        for (let userTag of userList) {
-            let rx = RegExp(userTag, 'gi')
-            for (let workTag of tagList) {
-                if (rx.test(workTag)) { return true }
-            }
-        }
-    }
-
-    // Transform wildcard * search pattern (allowing all other special characters)
+    // Format wildcard * search pattern (escaping all other special characters)
     function wildcardPattern (pattern) {
-        pattern = pattern.replace (/[.+?^=!:${}()|\]\[\/\\]/g, "\\$&")
-        // function escapeRegex (s) { return s.replace(/[.*+?^=!:${}()|\]\[\/\\]/g, "\\$&") }
-        // pattern = "^" + pattern.split('*').map(escapeRegex).join('.*') + "$"
+        pattern = '^' + pattern
+                    .replaceAll (/[\.+?^=!:${}()|\]\[\/\\]/g, "\\$&")
+                    .replaceAll ('*','.*')
+                    + '$'
         return pattern
     }
 
-    // Match test with wildcards (*) that does NOT use regex.
+    // Match test with wildcards (*) that does NOT use regex. --NIMG
     function wildcardMatch (userPattern, tagToTest) {
         userPattern = userPattern.toLowerCase()
         tagToTest = tagToTest.toLowerCase()
