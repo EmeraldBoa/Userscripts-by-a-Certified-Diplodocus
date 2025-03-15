@@ -1,10 +1,9 @@
 // ==UserScript==
 // @name         AO3: just my languages
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.2
+// @version      1.2.1
 // @description  Reduce language options to your preferences
 // @author       CertifiedDiplodocus
-// @require      http://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js
 // @match        http*://archiveofourown.org/*
 // @exclude      /^https?:\/\/archiveofourown\.org(?!\/search$|(.*\/(works|bookmarks)(?![^\/?])))/
 // @exclude      /.org/(works|bookmarks)$/
@@ -30,14 +29,12 @@ When creating or editing a work, you can:
     5 - Show only your chosen languages in the dropdown
     6 - Set a default language (⚠ use with caution ⚠)
 
-A word to the wise: don't overlook languages close to yours (e.g. if you read English you can read Scots, if you read Spanish
+TIP: don't overlook languages close to yours (e.g. if you read English you can read Scots, if you read Spanish
 you have a fair shot at Galego and Asturianu, etc)
 ----------------------------------------------------------------------------------------------------------------------
 */
 
-// TODO: Compare with Greasyfork - is this the latest version?
-
-(function() {
+(function($) {
     'use strict';
 
     /* ======================== 𒈾 USER SETTINGS (save to plaintext file in case of script updates) 𒈾 ==============================
@@ -179,40 +176,24 @@ you have a fair shot at Galego and Asturianu, etc)
 
     // Check that all user languages exist (run after the dropdown is set)
     function verifyLanguageCodes() {
-        if (!dropdown.length) {console.error(errPrefix + 'No language dropdown found!'); return} // prevent false alarms if the dropdown didn't load, but trace errors
-        const allUserLanguages = new Set( // no duplicates
-            [...dropdownLanguages, ...boldedLanguages, ...languagesForMultilingualSearch, defaultLanguage, defaultWritingLanguage]
-            .filter(x => x) // no empty values
-        )
-        let languageCodesNotFound = []
-        for (let userLang of allUserLanguages) {
-            if (!dropdown.children(`[lang="${userLang}"]`).length) {
-                languageCodesNotFound.push(userLang)
-            }
-        }
-        if (!languageCodesNotFound.length) {return true}
-        console.error(errPrefix + 'Could not find these language codes: "' + languageCodesNotFound.join(", ") + '"\n'
-                      + 'Please check your settings for typos.\n\n'
-                      + 'User-selected languages: ' + [...allUserLanguages].join(", "))
-        return false
-    }
-    function verifyLanguageCodes2() {
         if (!dropdown.length) {console.err('no dropdown found!'); return} // prevent false alarms if the dropdown didn't load
         const allUserLanguages = new Set( // no duplicates
-            [...dropdownLanguages, ...boldedLanguages, ...languagesForMultilingualSearch, defaultLanguage, defaultWritingLanguage]
+            [...dropdownLanguages, ...boldedLanguages, ...languagesForMultilingualSearch, 
+                defaultLanguage, defaultWritingLanguage]
             .filter(x => x) // no empty values
         )
         let ao3LangList = new Set(
-            dropdown.children.map(() => $(this).attr("lang")).get()
+            dropdown.children().map(
+                function() { return this.getAttribute('lang') }
+            ).get()
         )
         let languageCodesNotFound = allUserLanguages.difference(ao3LangList)
-        if (languageCodesNotFound.has()===false) {return true}
+        if (languageCodesNotFound.size === 0) {return true}
         console.error(errPrefix + 'Could not find these language codes: "' + [...languageCodesNotFound].join(", ") + '"\n'
                       + 'Please check your settings for typos.\n\n'
                       + 'User-selected languages: ' + [...allUserLanguages].join(", "))
         return false
     }
-
 
     //--------- Style 𒈾 button in CSS. -------------------------------------------------------------------------------------------
     // SPECIFICITY hierarchy: inline > #id > .class > attribute (e.g '[type="text"]') > element (e.g 'p'). Remember: p.class > .class
