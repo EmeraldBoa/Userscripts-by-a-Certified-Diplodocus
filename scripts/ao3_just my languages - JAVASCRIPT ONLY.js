@@ -76,7 +76,7 @@ you have a fair shot at Galego and Asturianu, etc)
 
     // Show only selected languages when creating/editing works
     if ((/\/works\/(new.*|([0-9]+\/edit))/gi).test(pageURL)) {
-        dropdown = $('select[id$="language_id"') // handle language selection in new?imported page, including parent work (IDs are different but all end in "language_id")
+        dropdown = document.querySelector('select[id$="language_id"') // handle language selection in new?imported page, including parent work (IDs are different but all end in "language_id")
         verifyLanguageCodes()
         if (modifyFilterDropdown) {reduceDropdownLangs(); boldDropdownLangs()}
         if (pageURL.includes('/works/new')) {autofillBlankDropdown(defaultWritingLanguage)}
@@ -87,12 +87,12 @@ you have a fair shot at Galego and Asturianu, etc)
 
     // select the right elements for the page
     if (pageURL.includes('/bookmarks')) {
-        dropdown = $('#bookmark_search_language_id')
-        searchbox = $('#bookmark_search_bookmarkable_query')
+        dropdown = document.getElementById('bookmark_search_language_id')
+        searchbox = document.getElementById('bookmark_search_bookmarkable_query')
     } else {
-        dropdown = $('#work_search_language_id')
-        searchbox = $('#work_search_query')
-    }
+        dropdown = document.getElementById('work_search_language_id')
+        searchbox = document.getElementById('work_search_query')
+    }    
     verifyLanguageCodes()
 
     // show only my languages (and the default 'blank' value) in the dropdown
