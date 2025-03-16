@@ -34,7 +34,7 @@ you have a fair shot at Galego and Asturianu, etc)
 
 (function() {
     'use strict';
-
+        
     /* ======================== 𒈾 USER SETTINGS (save to plaintext file in case of script updates) 𒈾 ==============================
 
     LANGUAGE CODES are listed at the end of this script. (AO3 appears to use a mix of 2 and 3-character codes.)
@@ -76,7 +76,7 @@ you have a fair shot at Galego and Asturianu, etc)
 
     // Show only selected languages when creating/editing works
     if ((/\/works\/(new.*|([0-9]+\/edit))/gi).test(pageURL)) {
-        dropdown = document.querySelector('select[id$="language_id"') // handle language selection in new?imported page, including parent work (IDs are different but all end in "language_id")
+        dropdown = document.querySelector('select[id$="language_id"') // element: handle language selection in new?imported page, including parent work (IDs are different but all end in "language_id")
         verifyLanguageCodes()
         if (modifyFilterDropdown) {reduceDropdownLangs(); boldDropdownLangs()}
         if (pageURL.includes('/works/new')) {autofillBlankDropdown(defaultWritingLanguage)}
@@ -87,7 +87,7 @@ you have a fair shot at Galego and Asturianu, etc)
 
     // select the right elements for the page
     if (pageURL.includes('/bookmarks')) {
-        dropdown = document.getElementById('bookmark_search_language_id')
+        dropdown = document.getElementById('bookmark_search_language_id') // element
         searchbox = document.getElementById('bookmark_search_bookmarkable_query')
     } else {
         dropdown = document.getElementById('work_search_language_id')
@@ -110,14 +110,14 @@ you have a fair shot at Galego and Asturianu, etc)
             autofillBlankDropdown(defaultLanguage);
             break;
         case 2:
-            if ($.trim(searchbox.val()).length == 0) {
-                searchbox.val(languageFilters)
+            if (searchbox.value.trim().length === 0) {
+                searchbox.value = languageFilters
             }
     }
 
     // Add (𒈾) button for multilingual searches next to "Languages" label.
-    const dropdownLabel = dropdown.parent().prev()
-    const babelButton = $(`<a class="question"><span class="symbol question babel-button">&#74302;</span></a>`)
+    const dropdownLabel = dropdown.parentElement.previousElementSibling
+    const babelButton = $(`<a class="question"><span class="symbol question babel-button">&#74302;</span></a>`) // TODO: createELement
     dropdownLabel.append(babelButton)
 
     // On click of (𒈾), add OR remove language filters from the "all fields" searchbox (after the current query)
