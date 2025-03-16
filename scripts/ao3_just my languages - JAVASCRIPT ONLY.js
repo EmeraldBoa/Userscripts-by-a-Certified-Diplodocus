@@ -1,106 +1,214 @@
 // ==UserScript==
-// @name         AO3: just my languages - JAVASCRIPT ONLY
+// @name         AO3: just my languages
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.0
+// @version      1.2.1
 // @description  Reduce language options to your preferences
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/*
-// @exclude      /^https?:\/\/archiveofourown\.org\/(?!((bookmarks|works)\/search)|((users|tags)\/.*\/(works|bookmarks)))/
+// @exclude      /^https?:\/\/archiveofourown\.org(?!\/search$|(.*\/(works|bookmarks)(?![^\/?])))/
+// @exclude      /.org/(works|bookmarks)$/
+// @exclude      /(works|bookmarks)\/search[?](?!.*edit_search=true)/
+// @exclude      /\/works\/[0-9]+(?![0-9]*\/edit)/
+// @exclude      /\/bookmarks\/[0-9]+
 // @icon         data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>𒈾</text></svg>
-// @grant        none
+// @grant        GM_addStyle
+// @license      GPL-3.0-or-later
 // ==/UserScript==
 
-/* jshint esversion:6 */ //          allows "let" in greasemonkey?
-
 /* PURPOSE: Simplify language search options on AO3. Choose any combination of the following:
-    1 - Show only your chosen languages in the dropdown list
+    1 - Show only your chosen languages in the dropdown list (when filtering and/or creating or editing a work)
     2 - Bold some languages in the dropdown (can be chosen independently from option 1)
-    3 - Multilingual search by default: add a query to each search to show fic in all your chosen languages at once (e.g. English AND Spanish AND Thai)
-    4 - Monolingual search by default: automatically set the dropdown to your preferred language
+    3 - Autofill:
+            - Monolingual: automatically set the dropdown to your preferred language
+            - Multilingual: add a query to each search to show fic in multiple languages at once (e.g. English AND Spanish AND Thai)
+    4 - Manual multilingual search: click the 𒈾 button to add/remove multilingual filters. Also works with autofill.
+
+When creating or editing a work, you can:
+    5 - Show only your chosen languages in the dropdown
+    6 - Set a default language (⚠ use with caution ⚠)
+
+TIP: don't overlook languages close to yours (e.g. if you read English you can read Scots, if you read Spanish
+you have a fair shot at Galego and Asturianu, etc)
 ----------------------------------------------------------------------------------------------------------------------
 */
 
-//TODO: thorough rewrite based on latest version
-
 (function() {
     'use strict';
-    let index = 0
 
-    /* ================================= USER SETTINGS (save to text file in case of script updates) =================================
+    /* ======================== 𒈾 USER SETTINGS (save to plaintext file in case of script updates) 𒈾 ==============================
 
     LANGUAGE CODES are listed at the end of this script. (AO3 appears to use a mix of 2 and 3-character codes.)
     Leave blank for the AO3 default appearance.
 
     OPTIONAL: autofill new searches to your chosen language(s). Filters can still be changed by hand.
-    This carries a small risk of hiding mistagged fics, so is disabled by default (useAutofill = 0).
+    This carries a small risk of hiding mistagged fics, so is disabled by default (autofillSearch = 0).
         0 - AO3 default (blank dropdown)
         1 - MONOLINGUAL autofill (fills the dropdown with your preferred language)
         2 - MULTILINGUAL autofill (adds a search query to show fic in all your preferred languages at once)
                * note: may be slower / have more impact on the servers. If noticeable, try reducing the number of languages. */
 
-    let shortenFilterDropdown = true
-    let shortenEditorDropdown = true
-    let useAutofill = 0
+    const dropdownLanguages = ['en', 'es', 'fr', 'ptBR', 'ptPT', 'sux']
+    const boldedLanguages = ['en', 'es', 'fr']
+    const languagesForMultilingualSearch = ['ptBR', 'ptPT', 'sux']
 
-    let myLanguages = ['en', 'es', 'fr', 'ptBR', 'ptPT', 'sux'] //    <- dropdown will show only these
-    let boldedLanguages = ['en', 'es', 'fr']
-    let multiLanguages = ['ptBR', 'ptPT', 'sux']
-    let defaultLanguage = 'es'
+    const modifyFilterDropdown = true
+    const autofillSearch = 0
+    const defaultLanguage = 'es'
 
-    /*
-    - bold myLanguages in main list
-    - bold multiLanguages in shortened list
-    - show main languages only, ignore multilanguages
-    */
+    // new work / new imported work / edit work
+    const modifyEditorDropdown = true
+    const defaultWritingLanguage = '' // OPTIONAL: add a language to autofill on new works
+
     // ===============================================================================================================================
 
-    if (multiLanguages.some(Boolean)==false) {
-        multiLanguages = myLanguages
+    // Check that settings make sense
+    const errPrefix = '[AO3: just my languages - userscript] \n⚠ Error: '
+    if (!dropdownLanguages.some(Boolean) && (modifyFilterDropdown || modifyEditorDropdown)) {
+        throw errPrefix + "To modify the dropdown you must add some languages first!"
+    }
+    if (autofillSearch===1 && !defaultLanguage) {throw errPrefix + "To autofill the dropdown, add a default language first!"}
+    if (autofillSearch===2 && !(languagesForMultilingualSearch || dropdownLanguages)) {throw errPrefix + "To autofill a multilingual search, add some languages first!"}
+
+    const pageURL = window.location.href
+    let dropdown, searchbox
+
+    // -------------------------------------------------------------------------------------------------------------------------------
+
+    // Show only selected languages when creating/editing works
+    if ((/\/works\/(new.*|([0-9]+\/edit))/gi).test(pageURL)) {
+        dropdown = $('select[id$="language_id"') // handle language selection in new?imported page, including parent work (IDs are different but all end in "language_id")
+        verifyLanguageCodes()
+        if (modifyFilterDropdown) {reduceDropdownLangs(); boldDropdownLangs()}
+        if (pageURL.includes('/works/new')) {autofillBlankDropdown(defaultWritingLanguage)}
+        return;
     }
 
-    // select the elements depending on the page
-    let dropdown, searchbox
-    if (window.location.href.match(/\/bookmarks/i)) {
-        dropdown = document.querySelector('#bookmark_search_language_id')
-        searchbox = document.querySelector('#bookmark_search_bookmarkable_query')
+    // -------------------------------------------------------------------------------------------------------------------------------
+
+    // select the right elements for the page
+    if (pageURL.includes('/bookmarks')) {
+        dropdown = $('#bookmark_search_language_id')
+        searchbox = $('#bookmark_search_bookmarkable_query')
     } else {
-        dropdown = document.querySelector('#work_search_language_id')
-        searchbox = document.querySelector('#work_search_query')
+        dropdown = $('#work_search_language_id')
+        searchbox = $('#work_search_query')
     }
+    verifyLanguageCodes()
 
     // show only my languages (and the default 'blank' value) in the dropdown
-    if (myLanguages.length > 0) {
-        dropdown.children().style.display = 'none'
-        dropdown.children('[value=""]').style.display = ''
-        for (index = 0; index < myLanguages.length; ++index) {
-            dropdown.children(`[value="${myLanguages[index]}"]`).show();
+    if (modifyFilterDropdown) {reduceDropdownLangs(); boldDropdownLangs()}
+
+    // Set filter for searching multiple languages. (If user didn't fill in multiLanguages, use dropdownLanguages instead.)
+    const languageFilters = 'language_id:' + (languagesForMultilingualSearch || dropdownLanguages).join(' OR language_id:')
+
+    /* Autofill (if the dropdown/searchbox are blank)
+        1 - MONOLINGUAL AUTOFILL: set dropdown to the default language.
+        2 - MULTILINGUAL AUTOFILL: insert search string into "Search within results / Any field": "language_id:egy OR language_id:sux"   */
+
+    switch (autofillSearch) {
+        case 1:
+            autofillBlankDropdown(defaultLanguage);
+            break;
+        case 2:
+            if ($.trim(searchbox.val()).length == 0) {
+                searchbox.val(languageFilters)
+            }
+    }
+
+    // Add (𒈾) button for multilingual searches next to "Languages" label.
+    const dropdownLabel = dropdown.parent().prev()
+    const babelButton = $(`<a class="question"><span class="symbol question babel-button">&#74302;</span></a>`)
+    dropdownLabel.append(babelButton)
+
+    // On click of (𒈾), add OR remove language filters from the "all fields" searchbox (after the current query)
+    babelButton.click(function(){
+        const searchboxContent = $.trim(searchbox.val())
+        if (searchboxContent.length == 0) {
+            searchbox.val(languageFilters)
+        } else if (!searchboxContent.includes(languageFilters)) {
+            searchbox.val(searchboxContent + ' ' + languageFilters) // toggle on
+        } else {
+            searchbox.val(searchboxContent.replace(languageFilters,'').trim()) // toggle off
+        }
+        searchbox.trigger('change')
+    })
+
+    // Conditional CSS: alignment + colour (on search pages, 𒈾 should use the default page style to match the neighbouring "?")
+    babelButton.children().first().toggleClass('babel-normal-align', !window.location.href.includes('/search'))
+    searchbox.on('change', indicateBabelStatus)
+    indicateBabelStatus()
+
+    // -------- FUNCTIONS ------------------------------------------------------------------------------------------------------------
+
+    // Colour 𒈾 green as long as the search box contains the filter (check with different site skins). Set the tooltip.
+    function indicateBabelStatus() {
+        const languageFiltersOn = searchbox.val().includes(languageFilters)
+        babelButton.children().first().toggleClass('babel-button-filter-on', languageFiltersOn)
+        babelButton
+            .attr('title',`${languageFiltersOn ? 'Searching' : 'Search'} multiple languages:
+            ${languagesForMultilingualSearch.join(', ')}`) // in template literals, make a newline to break, no code needed!
+    }
+
+    // Show only your chosen languages (+ blank option) in the dropdown (filter or editing)
+    function reduceDropdownLangs(){
+        dropdown.children().hide()
+        dropdown.children('[value=""]').show()
+        for (let userLang of dropdownLanguages) {
+            dropdown.children(`[lang="${userLang}"]`).show();
         }
     }
 
-    // bold languages in the dropdown
-    for (index = 0; index < myLanguages.length; ++index) {
-        dropdown.children(`[value="${boldedLanguages[index]}"]`).css('font-weight','bold');
+    // Bold languages in the dropdown
+    function boldDropdownLangs() {
+        if (!boldedLanguages.some(Boolean)) {return}
+        for (let userLang of boldedLanguages) {
+            dropdown.children(`[lang="${userLang}"]`).css('font-weight','bold');
+        }
     }
 
-    // Autofill (if the dropdown/searchbox are blank)
-    //     1 - MONOLINGUAL AUTOFILL: set dropdown to the default language.
-    //     2 - MULTILINGUAL AUTOFILL: insert search string into "Search within results / Any field": "language_id:egy OR language_id:sux"
-
-    if (
-        useAutofill==1
-        && !dropdown.val()
-    ) {
-
-        dropdown.children(`[value="${defaultLanguage}"]`).attr('selected','selected')
-
-    } else if (
-        useAutofill==2
-        && $.trim(searchbox.val()).length > 0
-    ) {
-
-        let languageFilters = 'language_id: ' + multiLanguages.join(' OR language_id: ');
-        searchbox.val(languageFilters)
+    // Autofill the dropdown if it is empty and the user selected a default language
+    function autofillBlankDropdown(defaultLang) {
+        if (!defaultLang || dropdown.val()) {return}
+        dropdown.children(`[lang="${defaultLanguage}"]`).attr('selected','selected')
     }
+
+    // Check that all user languages exist (run after the dropdown is set)
+    function verifyLanguageCodes() {
+        if (!dropdown.length) {console.err('no dropdown found!'); return} // prevent false alarms if the dropdown didn't load
+        const allUserLanguages = new Set( // no duplicates
+            [...dropdownLanguages, ...boldedLanguages, ...languagesForMultilingualSearch, 
+                defaultLanguage, defaultWritingLanguage]
+            .filter(x => x) // no empty values
+        )
+        let ao3LangList = new Set(
+            dropdown.children().map(
+                function() { return this.getAttribute('lang') }
+            ).get()
+        )
+        let languageCodesNotFound = allUserLanguages.difference(ao3LangList)
+        if (languageCodesNotFound.size === 0) {return true}
+        console.error(errPrefix + 'Could not find these language codes: "' + [...languageCodesNotFound].join(", ") + '"\n'
+                      + 'Please check your settings for typos.\n\n'
+                      + 'User-selected languages: ' + [...allUserLanguages].join(", "))
+        return false
+    }
+
+    //--------- Style 𒈾 button in CSS. -------------------------------------------------------------------------------------------
+    // SPECIFICITY hierarchy: inline > #id > .class > attribute (e.g '[type="text"]') > element (e.g 'p'). Remember: p.class > .class
+
+    GM_addStyle ( `
+    .babel-button {
+        cursor:copy;
+    }
+    span.babel-normal-align {
+        vertical-align:inherit;
+    }
+    span.babel-button-filter-on {
+        color: mintcream;
+        background-color: darkgreen;
+        border-color: darkgreen;
+    }
+    `)
 
     /*--------- LANGUAGE CODES ON AO3 ------------------------------------------------------------------------------------------------
 
@@ -243,12 +351,42 @@ yue: 中文-广东话 粵語
 zh:  中文-普通话 國語
 
 
- Userscript should activate only for these URLs: */
-    // tags/*/works
-    // tags/*/bookmarks
-    // users/*/works
-    // users/*/bookmarks
-    // bookmarks/search*
-    // works/search*
+ Userscript should activate only on URLs with language filtering.
+ If it doesn't activate on a page, and it should, let me know.
+ (Quick & dirty fix: delete the @exclude lines at the start of the script to enable the script on all of AO3.)
 
-})(jQuery);
+Include: all URLS with /works or /bookmarks; new/edit work; the exact url "https://archiveofourown.org/search"
+Exclude: individual works/bookmarks, advanced search results (no tag filtering = no filter sidebar)
+
+INCLUDE EXAMPLES
+users/singlecrow/pseuds/raven/works?fandom_id=47992099
+collections/SomeCollection/bookmarks
+collections/SomeCollection/works?work_search%5...
+languages/uig/works
+bookmarks?bookmark_search%5Bsort_column%5D=cre...
+bookmarks/search
+works?work_search
+works/new
+works/new?import=true
+works/123456/edit
+works/123456/edit_tags
+(works|bookmarks)/search?.*edit_search=true
+search?commit=Search&edit_search=true
+
+EXCLUDE EXAMPLES
+works/search?commit=Search&work_search%5Bquery...       (no filter bar)
+works/search?work_search%5Bquery%5D=&work_search...
+works/search.*(?!edit_search=true)
+works/123456
+bookmarks/123456/edit
+collections/Suggested_Good_Reads/works/18356108
+.org/works
+.org/bookmarks
+
+TAMPERMONKEY REGEX ISSUE: the line
+@exclude      /\/works\/[0-9]+(?![0-9]*\/edit)/
+should also block /works/123/comments/edit, but doesn't. See https://stackoverflow.com/questions/68826178/exclude-in-userscript-not-working-as-expected
+for another script where the regex fails in Tampermonkey, but not Violentmonkey
+ */
+
+})();
