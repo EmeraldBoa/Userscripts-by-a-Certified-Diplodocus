@@ -112,19 +112,19 @@ you have a fair shot at Galego and Asturianu, etc)
             autofillBlankDropdown(defaultLanguage);
             break;
         case 2:
-            if ($.trim(searchbox.val()).length == 0) {
+            if (searchbox.val().trim().length === 0) {
                 searchbox.val(languageFilters)
             }
     }
 
     // Add (𒈾) button for multilingual searches next to "Languages" label.
     const dropdownLabel = dropdown.parent().prev()
-    const babelButton = $(`<a class="question"><span class="symbol question babel-button">&#74302;</span></a>`)
+    const babelButton = $(`<a class="question"><span class="symbol question babel-button">&#74302;</span></a>`) // TODO: createELement
     dropdownLabel.append(babelButton)
 
     // On click of (𒈾), add OR remove language filters from the "all fields" searchbox (after the current query)
     babelButton.click(function(){
-        const searchboxContent = $.trim(searchbox.val())
+        const searchboxContent = searchbox.val().trim()
         if (searchboxContent.length == 0) {
             searchbox.val(languageFilters)
         } else if (!searchboxContent.includes(languageFilters)) {

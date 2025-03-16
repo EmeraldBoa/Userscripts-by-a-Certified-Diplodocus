@@ -122,8 +122,8 @@ you have a fair shot at Galego and Asturianu, etc)
 
     // On click of (𒈾), add OR remove language filters from the "all fields" searchbox (after the current query)
     babelButton.click(function(){
-        const searchboxContent = $.trim(searchbox.val())
-        if (searchboxContent.length == 0) {
+        const searchboxContent = searchbox.value.trim()
+        if (searchboxContent.length === 0) {
             searchbox.val(languageFilters)
         } else if (!searchboxContent.includes(languageFilters)) {
             searchbox.val(searchboxContent + ' ' + languageFilters) // toggle on
