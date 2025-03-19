@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         AO3: just my languages
+// @name         AO3: just my languages - JAVASCRIPT ONLY
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
 // @version      1.2.1
 // @description  Reduce language options to your preferences
@@ -47,17 +47,17 @@ you have a fair shot at Galego and Asturianu, etc)
         2 - MULTILINGUAL autofill (adds a search query to show fic in all your preferred languages at once)
                * note: may be slower / have more impact on the servers. If noticeable, try reducing the number of languages. */
 
-    const dropdownLanguages = ['en', 'es', 'fr', 'ptBR', 'ptPT', 'sux']
-    const boldedLanguages = ['en', 'es', 'fr']
-    const languagesForMultilingualSearch = ['ptBR', 'ptPT', 'sux']
+    let dropdownLanguages = ['en', 'es', 'fr', 'ptBR', 'ptPT', 'sux'],
+        boldedLanguages = ['en', 'es', 'fr', 'beepboop'],
+        languagesForMultilingualSearch = ['ptBR', 'ptPT', 'sux']
 
     const modifyFilterDropdown = true
-    const autofillSearch = 0
-    const defaultLanguage = 'es'
+    const autofillSearch = 0 // TODO add comment with number meanings
+    let defaultLanguage = 'es'
 
     // new work / new imported work / edit work
     const modifyEditorDropdown = true
-    const defaultWritingLanguage = '' // OPTIONAL: add a language to autofill on new works
+    let defaultWritingLanguage = '' // OPTIONAL: add a language to autofill on new works
 
     // ===============================================================================================================================
 
@@ -77,7 +77,7 @@ you have a fair shot at Galego and Asturianu, etc)
     // Show only selected languages when creating/editing works
     if ((/\/works\/(new.*|([0-9]+\/edit))/gi).test(pageURL)) {
         dropdown = document.querySelector('select[id$="language_id"') // element: handle language selection in new?imported page, including parent work (IDs are different but all end in "language_id")
-        verifyLanguageCodes()
+        handleInvalidLanguages()
         if (modifyFilterDropdown) {reduceDropdownLangs(); boldDropdownLangs()}
         if (pageURL.includes('/works/new')) {autofillBlankDropdown(defaultWritingLanguage)}
         return;
@@ -93,7 +93,7 @@ you have a fair shot at Galego and Asturianu, etc)
         dropdown = document.getElementById('work_search_language_id')
         searchbox = document.getElementById('work_search_query')
     }    
-    verifyLanguageCodes()
+    handleInvalidLanguages()
 
     // show only my languages (and the default 'blank' value) in the dropdown
     if (modifyFilterDropdown) {reduceDropdownLangs(); boldDropdownLangs()}
@@ -117,80 +117,103 @@ you have a fair shot at Galego and Asturianu, etc)
 
     // Add (𒈾) button for multilingual searches next to "Languages" label.
     const dropdownLabel = dropdown.parentElement.previousElementSibling
-    const babelButton = $(`<a class="question"><span class="symbol question babel-button">&#74302;</span></a>`) // TODO: createELement
+    const babelButton = createNewElement('a', 'question'),
+    babelButtonSpan = createNewElement('span', 'symbol question babel-button', '\u{1223E}') // Unicode: string, not HTML. {}: allow code with 5+ digits
     dropdownLabel.append(babelButton)
+    babelButton.appendChild(babelButtonSpan)
 
     // On click of (𒈾), add OR remove language filters from the "all fields" searchbox (after the current query)
-    babelButton.click(function(){
+    babelButton.addEventListener('click', function(){
         const searchboxContent = searchbox.value.trim()
         if (searchboxContent.length === 0) {
-            searchbox.val(languageFilters)
+            searchbox.value = languageFilters
         } else if (!searchboxContent.includes(languageFilters)) {
-            searchbox.val(searchboxContent + ' ' + languageFilters) // toggle on
+            searchbox.value = searchboxContent + ' ' + languageFilters // toggle on
         } else {
-            searchbox.val(searchboxContent.replace(languageFilters,'').trim()) // toggle off
+            searchbox.value = searchboxContent.replace(languageFilters,'').trim() // toggle off
         }
-        searchbox.trigger('change')
+        searchbox.dispatchEvent(new Event('change'))
     })
 
     // Conditional CSS: alignment + colour (on search pages, 𒈾 should use the default page style to match the neighbouring "?")
-    babelButton.children().first().toggleClass('babel-normal-align', !window.location.href.includes('/search'))
-    searchbox.on('change', indicateBabelStatus)
+    babelButton.children.item(0).classList.toggle('babel-normal-align', !window.location.href.includes('/search'))
+    searchbox.addEventListener('change', indicateBabelStatus)
     indicateBabelStatus()
 
     // -------- FUNCTIONS ------------------------------------------------------------------------------------------------------------
 
     // Colour 𒈾 green as long as the search box contains the filter (check with different site skins). Set the tooltip.
     function indicateBabelStatus() {
-        const languageFiltersOn = searchbox.val().includes(languageFilters)
-        babelButton.children().first().toggleClass('babel-button-filter-on', languageFiltersOn)
+        const languageFiltersOn = searchbox.value.includes(languageFilters)
+        babelButton.children.item(0).classList.toggle('babel-button-filter-on', languageFiltersOn)
         babelButton
-            .attr('title',`${languageFiltersOn ? 'Searching' : 'Search'} multiple languages:
+            .setAttribute('title',`${languageFiltersOn ? 'Searching' : 'Search'} multiple languages:
             ${languagesForMultilingualSearch.join(', ')}`) // in template literals, make a newline to break, no code needed!
     }
 
     // Show only your chosen languages (+ blank option) in the dropdown (filter or editing)
     function reduceDropdownLangs(){
-        dropdown.children().hide()
-        dropdown.children('[value=""]').show()
-        for (let userLang of dropdownLanguages) {
-            dropdown.children(`[lang="${userLang}"]`).show();
+        for (let opt of dropdown.children) {
+            opt.setAttribute('hidden','true')
         }
+        dropdown.querySelector('[value=""]').removeAttribute('hidden')
+        for (let userLang of dropdownLanguages) {
+            dropdown.querySelector(`[lang="${userLang}"]`).removeAttribute('hidden')
+        }
+        dropdownLanguages.includes('lang')
     }
 
     // Bold languages in the dropdown
     function boldDropdownLangs() {
         if (!boldedLanguages.some(Boolean)) {return}
         for (let userLang of boldedLanguages) {
-            dropdown.children(`[lang="${userLang}"]`).css('font-weight','bold');
+            dropdown.querySelector(`[lang="${userLang}"]`).style.fontWeight = 'bold';
         }
     }
 
     // Autofill the dropdown if it is empty and the user selected a default language
     function autofillBlankDropdown(defaultLang) {
-        if (!defaultLang || dropdown.val()) {return}
-        dropdown.children(`[lang="${defaultLanguage}"]`).attr('selected','selected')
+        if (!defaultLang || dropdown.value) {return}
+        dropdown.querySelector(`[lang="${defaultLanguage}"]`).selected = true
     }
 
-    // Check that all user languages exist (run after the dropdown is set)
+    // Check that all user languages exist, then remove any that are invalid //MAYBE: throw error?
     function verifyLanguageCodes() {
-        if (!dropdown.length) {console.err('no dropdown found!'); return} // prevent false alarms if the dropdown didn't load
+        if (!dropdown.length) {throw errPrefix + 'No dropdown found!'}
         const allUserLanguages = new Set( // no duplicates
             [...dropdownLanguages, ...boldedLanguages, ...languagesForMultilingualSearch, 
                 defaultLanguage, defaultWritingLanguage]
             .filter(x => x) // no empty values
         )
-        let ao3LangList = new Set(
-            dropdown.children().map(
-                function() { return this.getAttribute('lang') }
-            ).get()
+        const ao3LangList = new Set(
+            [...dropdown.children].map(el => el.value)
         )
-        let languageCodesNotFound = allUserLanguages.difference(ao3LangList)
+        const languageCodesNotFound = allUserLanguages.difference(ao3LangList)
         if (languageCodesNotFound.size === 0) {return true}
         console.error(errPrefix + 'Could not find these language codes: "' + [...languageCodesNotFound].join(", ") + '"\n'
                       + 'Please check your settings for typos.\n\n'
                       + 'User-selected languages: ' + [...allUserLanguages].join(", "))
-        return false
+        return languageCodesNotFound
+    }
+    function handleInvalidLanguages () {
+        const invalidLanguages = Array.from (verifyLanguageCodes())
+        if (!invalidLanguages) { return }
+        dropdownLanguages = cleanLanguageArrays(invalidLanguages, dropdownLanguages)
+        boldedLanguages = cleanLanguageArrays(invalidLanguages, boldedLanguages)
+        languagesForMultilingualSearch = cleanLanguageArrays(invalidLanguages, languagesForMultilingualSearch)
+        if (invalidLanguages.includes(defaultLanguage)) { defaultLanguage = '' }
+        if (invalidLanguages.includes(defaultWritingLanguage)) { defaultWritingLanguage = '' }
+    }
+
+    function cleanLanguageArrays(invalidLanguages, arr) {
+        return arr.filter(lang => !invalidLanguages.includes(lang)) // keep only languages which are NOT invalid
+    }
+
+    function createNewElement(elementType, className, textContent) {
+        const el = document.createElement(elementType);
+        el.className = className
+        el.textContent = textContent
+        return el
     }
 
     //--------- Style 𒈾 button in CSS. -------------------------------------------------------------------------------------------
