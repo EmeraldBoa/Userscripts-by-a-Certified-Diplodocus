@@ -27,7 +27,7 @@ When creating or editing a work, you can:
     5 - Show only your chosen languages in the dropdown
     6 - Set a default language (⚠ use with caution ⚠)
 
-TIP: don't overlook languages close to yours (e.g. if you read English you can read Scots, if you read Spanish
+TIP: add all languages close to yours (e.g. if you read English you can read Scots, if you read Spanish
 you have a fair shot at Galego and Asturianu, etc)
 ----------------------------------------------------------------------------------------------------------------------
 */
@@ -52,8 +52,8 @@ you have a fair shot at Galego and Asturianu, etc)
         languagesForMultilingualSearch = ['ptBR', 'ptPT', 'sux']
 
     const modifyFilterDropdown = true
-    const autofillSearch = 0 // TODO add comment with number meanings
-    let defaultLanguage = 'es'
+    const autofillSearch = 0 // 0 = no autofill; 1 = one language; 2 = all your languages (may be slower)
+    let defaultLanguage = 'es' // OPTIONAL: single language (autofill = 1)
 
     // new work / new imported work / edit work
     const modifyEditorDropdown = true
@@ -115,10 +115,10 @@ you have a fair shot at Galego and Asturianu, etc)
             }
     }
 
-    // Add (𒈾) button for multilingual searches next to "Languages" label.
+    // Add (𒈾) button for multilingual searches next to "Languages" label. (JS strings: use unicode, with {} if the unicode 5+ digits)
     const dropdownLabel = dropdown.parentElement.previousElementSibling
     const babelButton = createNewElement('a', 'question'),
-    babelButtonSpan = createNewElement('span', 'symbol question babel-button', '\u{1223E}') // Unicode: string, not HTML. {}: allow code with 5+ digits
+    babelButtonSpan = createNewElement('span', 'symbol question babel-button', '\u{1223E}')
     dropdownLabel.append(babelButton)
     babelButton.appendChild(babelButtonSpan)
 
@@ -160,7 +160,6 @@ you have a fair shot at Galego and Asturianu, etc)
         for (let userLang of dropdownLanguages) {
             dropdown.querySelector(`[lang="${userLang}"]`).removeAttribute('hidden')
         }
-        dropdownLanguages.includes('lang')
     }
 
     // Bold languages in the dropdown
@@ -177,7 +176,7 @@ you have a fair shot at Galego and Asturianu, etc)
         dropdown.querySelector(`[lang="${defaultLanguage}"]`).selected = true
     }
 
-    // Check that all user languages exist, then remove any that are invalid //MAYBE: throw error?
+    // Check that all user languages exist, then remove any that are invalid // MAYBE: throw error? Else user will be unaware...
     function verifyLanguageCodes() {
         if (!dropdown.length) {throw errPrefix + 'No dropdown found!'}
         const allUserLanguages = new Set( // no duplicates
@@ -186,7 +185,7 @@ you have a fair shot at Galego and Asturianu, etc)
             .filter(x => x) // no empty values
         )
         const ao3LangList = new Set(
-            [...dropdown.children].map(el => el.value)
+            [...dropdown.children].map(el => el.lang)
         )
         const languageCodesNotFound = allUserLanguages.difference(ao3LangList)
         if (languageCodesNotFound.size === 0) {return true}

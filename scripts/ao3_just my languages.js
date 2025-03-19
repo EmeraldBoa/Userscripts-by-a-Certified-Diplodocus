@@ -29,11 +29,9 @@ When creating or editing a work, you can:
     5 - Show only your chosen languages in the dropdown
     6 - Set a default language (⚠ use with caution ⚠)
 
-TIP: don't overlook languages close to yours (e.g. if you read English you can read Scots, if you read Spanish
+TIP: add all languages close to yours (e.g. if you read English you can read Scots, if you read Spanish
 you have a fair shot at Galego and Asturianu, etc)
-----------------------------------------------------------------------------------------------------------------------
-*/
-
+----------------------------------------------------------------------------------------------------------------------*/
 (function($) {
     'use strict';
 
@@ -119,13 +117,20 @@ you have a fair shot at Galego and Asturianu, etc)
 
     // Add (𒈾) button for multilingual searches next to "Languages" label.
     const dropdownLabel = dropdown.parent().prev()
-    const babelButton = $(`<a class="question"><span class="symbol question babel-button">&#74302;</span></a>`) // TODO: createELement
+    const babelButton = $(`<a class="question"><span class="symbol question babel-button">&#74302;</span></a>`)
     dropdownLabel.append(babelButton)
+
+    function createNewElement(elementType, className, textContent) {
+        const el = document.createElement(elementType);
+        el.className = className
+        el.textContent = textContent
+        return el
+    }
 
     // On click of (𒈾), add OR remove language filters from the "all fields" searchbox (after the current query)
     babelButton.click(function(){
         const searchboxContent = searchbox.val().trim()
-        if (searchboxContent.length == 0) {
+        if (searchboxContent.length === 0) {
             searchbox.val(languageFilters)
         } else if (!searchboxContent.includes(languageFilters)) {
             searchbox.val(searchboxContent + ' ' + languageFilters) // toggle on
@@ -176,20 +181,18 @@ you have a fair shot at Galego and Asturianu, etc)
 
     // Check that all user languages exist (run after the dropdown is set)
     function verifyLanguageCodes() {
-        if (!dropdown.length) {console.err('no dropdown found!'); return} // prevent false alarms if the dropdown didn't load
+        if (!dropdown.length) {throw errPrefix + 'No dropdown found!'}
         const allUserLanguages = new Set( // no duplicates
             [...dropdownLanguages, ...boldedLanguages, ...languagesForMultilingualSearch, 
                 defaultLanguage, defaultWritingLanguage]
             .filter(x => x) // no empty values
         )
-        let ao3LangList = new Set(
-            dropdown.children().map(
-                function() { return this.getAttribute('lang') }
-            ).get()
+        const ao3LangList = new Set(
+            $.map (dropdown.children(), el => el.getAttribute('lang'))
         )
-        let languageCodesNotFound = allUserLanguages.difference(ao3LangList)
-        if (languageCodesNotFound.size === 0) {return true}
-        console.error(errPrefix + 'Could not find these language codes: "' + [...languageCodesNotFound].join(", ") + '"\n'
+        const invalidLanguageCodes = allUserLanguages.difference(ao3LangList)
+        if (invalidLanguageCodes.size === 0) {return true}
+        console.error(errPrefix + 'Could not find these language codes: "' + [...invalidLanguageCodes].join(", ") + '"\n'
                       + 'Please check your settings for typos.\n\n'
                       + 'User-selected languages: ' + [...allUserLanguages].join(", "))
         return false
