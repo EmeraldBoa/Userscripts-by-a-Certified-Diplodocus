@@ -4,7 +4,6 @@
 // @version      1.2
 // @description  copies story data from AO3/FFN for pasting into MS Access or markdown (reddit)
 // @author       CertifiedDiplodocus
-// @require      http://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js
 // @require      http://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js
 // @match        http*://archiveofourown.org/*
 // @match        http*://www.fanfiction.net/s/*
@@ -17,14 +16,14 @@
 
 this.$ = this.jQuery = jQuery.noConflict(true); // Prevent conflict with website JQuery libraries (on FFN specifically)
 
-//TO DO
+// TO DOs
+//     [ ] check if jquery-ui is actually being used. Can I use something else? AO3 doesn't load it. HTML5 instead? // FIX
+//     [ ] ctrl+click on button to show dropdown (simpler: modal dialog w/ dropdown?) // MAYBE
+//     [ ] choose and remember format (reddit, access, other)
+//     [ ] when format changes, change button icon (copy / reddit)
+//     [ ] title text on button "Current format: [formatName]. Ctrl + click to change settings"
 //
-//- BUG:
-
-//     * ctrl+click on button to show dropdown (simpler: modal dialog w/ dropdown?)
-//     * choose and remember format (reddit, access, other)
-//     * when format changes, change button icon (copy / reddit)
-//     * title text on button "Current format: [formatName]. Ctrl + click to change settings"
+// !BUG:
 
 
 (function() {

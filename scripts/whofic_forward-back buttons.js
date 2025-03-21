@@ -13,6 +13,8 @@
 
 /* eslint-env jquery */
 
+// TODO do I need jquery? jquery ui?
+
 (function() {
     'use strict';
 

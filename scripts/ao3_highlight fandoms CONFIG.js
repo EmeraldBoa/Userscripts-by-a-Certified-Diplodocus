@@ -41,7 +41,7 @@ https://commons.wikimedia.org/wiki/File:Cib-archive-of-our-own_(CoreUI_Icons_v1.
                              "Good Omens", "Gravity Falls", "Harry Potter", "Hornblower", "House M\.D\.",
                              "Indiana Jones", "Jonathan Creek", "Jonathan Strange & Mr Norrell",
                              "Kung Fu Panda", "League of Legends", "Life On Mars",
-                             "MASH", "Mob Psycho 100", "Monty Python", "Mushishi", "My Hero Academia",
+                             "MASH", "Mob Psycho 100", "Monty Python", "Mushishi", "My Hero Academia", "Mystery Skulls Animated",
                              "Marvel Cinematic Universe", "^Marvel$", //                             **MCU**
                              "The Avengers .Marvel", "The Avengers - Ambiguous", //                  **MCU**
                              "^Captain America", "Guardians of the Galaxy", "^Iron Man .Movies.", // **MCU**
@@ -50,7 +50,7 @@ https://commons.wikimedia.org/wiki/File:Cib-archive-of-our-own_(CoreUI_Icons_v1.
                              "Pirates of the Caribbean", "Pokemon - All Media Types", "Pokemon .Anime.", "Sword & Shield",
                              "Red Dwarf", "Rick and Morty", "Sagas of Sundry: Dread",
                              "Scoob and Shag", "Scooby.Doo", "Sherlock", "Sleepy Hollow", "Spider-Verse",
-                             "^Star Trek$", "Star Trek: Alternate Original Series", "Star Trek: The Next Generation", "Star Trek: The Original Series",
+                             "^Star Trek$", "Star Trek: (Alternate Original Series|The Next Generation|The Original Series)",
                              "^Star Wars", "Steven Universe", "Stranger Things", "Swallows and Amazons",
                              "Team Fortress 2", "The Brittas Empire", "The Magnus Archives", "The Thick of It",
                              "The Umbrella Academy", "Undeadwood", "The X-Files", "Tintin", "Trigun", "Welcome to Night Vale", "Withnail & I"],
@@ -78,7 +78,7 @@ https://commons.wikimedia.org/wiki/File:Cib-archive-of-our-own_(CoreUI_Icons_v1.
         // SPECIAL CHARACTERS: If a fandom contains any of the following characters
         // . + * ? ^ $ { } | \
         // they must be preceded (escaped) with a backslash (e.g. "House M\.D\.")
-        // for the script to work. You can also replace them with "."(=match a single character)
+        // for the script to work. You can also replace them with "."(=match any single character)
         //
         // ( ) and [ ]
         // must be escaped with a double backslash: "Thor \\(Marvel\\)"

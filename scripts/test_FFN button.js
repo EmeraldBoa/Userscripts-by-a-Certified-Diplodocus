@@ -11,6 +11,8 @@
 
 /* eslint-env jquery */
 
+// MAYBE delete script (test is done)
+
 (function() {
     'use strict';
 

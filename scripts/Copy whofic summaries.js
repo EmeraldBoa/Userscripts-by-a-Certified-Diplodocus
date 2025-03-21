@@ -24,8 +24,10 @@
      // markdown                    for Reddit                                     *
 // *********************************************************************************
 
-// ****************** TO DO ***************************************************************
-// - expand to work on search pages / check that nothing breaks when page has no stories (i.e. that the .storyBlock class isn't recycled)
+// **************** TO DO ***************************************************************// TODO
+// [ ] check if JQuery is used by whofic, and thus whether it can be removed. If not
+//      [ ] consider whether to switch to vanilal js
+// [ ] expand to work on search pages / check that nothing breaks when page has no stories (i.e. that the .storyBlock class isn't recycled)
 // *****************************************************************************************
 
 (function() {

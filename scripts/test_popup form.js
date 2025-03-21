@@ -1,6 +1,5 @@
 // ==UserScript==
 // @name         test_popup form
-// @require      http://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js
 // @require      http://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js
 // @match        http*://archiveofourown.org/works/*
 // @grant        GM_addStyle
