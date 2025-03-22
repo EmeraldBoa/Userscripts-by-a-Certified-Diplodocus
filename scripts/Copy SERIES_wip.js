@@ -4,6 +4,7 @@
 // @version      1.2
 // @description  copies story data from AO3 for pasting into MS Access
 // @author       CertifiedDiplodocus
+// @require      http://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js
 // @require      http://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js
 // @match        http*://archiveofourown.org/series/*
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
@@ -14,7 +15,7 @@
 
 this.$ = this.jQuery = jQuery.noConflict(true); // Prevent conflict with website JQuery libraries (on FFN specifically)
 
-//TO DO: Do I need jquery ui?
+//TO DO: Do I need jquery ui? Does FFN have jquery?
 
 (function() {
     'use strict';

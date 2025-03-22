@@ -4,6 +4,7 @@
 // @version      1.2
 // @description  copies story data from AO3/FFN for pasting into MS Access or markdown (reddit)
 // @author       CertifiedDiplodocus
+// @require      http://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js //TODO does ffn have this?
 // @require      http://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js
 // @match        http*://archiveofourown.org/*
 // @match        http*://www.fanfiction.net/s/*
