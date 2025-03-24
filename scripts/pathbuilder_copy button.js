@@ -7,8 +7,7 @@
 // @match        http*://pathbuilder2e.com/app.html*
 // @icon         https://pathbuilder2e.com/favicon.ico
 // @license      GPL-3.0-or-later
-// @grant        none
-// @run-at       document-start 
+// @grant        GM_addStyle
 // ==/UserScript==
 
 //TODO: don't use document-start in header! may not need first MutationObs?
@@ -29,31 +28,21 @@ POLISH (late-game steps)
         [ ] design (upload?) a subtle "copy" button to match the Pathbuilder theme
         [ ] add action icons after the title ◇◆↩︎
         [ ] add a visual indicator when the copy succeeds (HTML5 on the button?)
+        [ ] make work with light AND dark styles
 ----------------------------------------------------------------------------------------------------------------------*/
 
 (function() {
     'use strict';
 
-    // wait for body to load
-    const docObserver = new MutationObserver (() => {
-        if (document.body) {
-            buildSheetObserver()
-            docObserver.disconnect()    // TODO: will it break if I put this first? If yes, then put the disconnect in the next function.
+    // wait for the user to load a character sheet
+    const sheetObserver = new MutationObserver (()=>{
+        const sheetIsVisible = document.getElementById('main-container').offsetParent //https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetParent
+        if (sheetIsVisible) {
+            sheetObserver.disconnect()
+            modifyCharSheet()
         }
     })
-    docObserver.observe (document.documentElement, {childList: true})
-
-    // wait for the user to load a character sheet
-    function buildSheetObserver() {
-        const sheetObserver = new MutationObserver (()=>{
-            const sheetIsVisible = document.getElementById('main-container').offsetParent //https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetParent
-            if (sheetIsVisible) {
-                modifyCharSheet()
-                sheetObserver.disconnect() // TODO: will it break if I put this first? If yes, then put the disconnect in the next function.
-            }
-        })
-        sheetObserver.observe (document.body, {childList: true})
-    }
+    sheetObserver.observe (document.body, {childList: true})
 
     // done! run the rest of the script.
     function modifyCharSheet() {
@@ -68,7 +57,8 @@ POLISH (late-game steps)
             Title: featBlock.querySelector('.listview-title').textContent,
             Info: featBlock.querySelector('.listview-detail').textContent
         }
-        const formattedFeatText =`**${featText.Title}**
+        const formattedFeatText =
+        `**${featText.Title}**
         ${featText.Info}`;
 
         // Make button
@@ -95,9 +85,20 @@ POLISH (late-game steps)
         const newButton = document.createElement (elementType)
         newButton.className = buttonClass
         newButton.textContent = '📋︎' // 📋📋︎
-        newButton.style.color = '#2d4059'
         newButton.addEventListener ('click', callbackFunction, false)
         return newButton
     }
+
+    GM_addStyle (`
+    .copy-button {
+        color: #2d4059;
+        border: none;
+    }
+    .copy-button:hover {
+        color: #ff5722;
+        border: none;
+    }
+    `)
+    //.listview-title:hover // TODO inherit this? maybe use the .listview-title class, and override unwanted settings (+cursor)
 
 })();
