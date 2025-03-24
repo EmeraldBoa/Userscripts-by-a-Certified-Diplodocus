@@ -11,13 +11,13 @@
 // @run-at       document-start
 // ==/UserScript==
 
-/* TODOs
-        [ ] identify location
+/* DONE:
+        [x] identify location
         [x] jquery or not? NOT. Do I want to use it?
-        [ ] create simple button & add to page
-        [ ] add copy code
+        [x] create simple button & add to page
+        [x] add copy code
 
-// TODO IMPORTANT: Will it work even though the page only loads after the user clicks to load a character?
+TODO: now make it work with all elements
 
         Steps: 
             [ ] 1. Test adding button to feats page
