@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Copy button for Pathbuilder
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      0.1
+// @version      0.2
 // @description  Adds a copy button to Pathbuilder's feat, feature and item descriptions.
 // @author       CertifiedDiplodocus
 // @match        http*://pathbuilder2e.com/app.html*
@@ -9,10 +9,8 @@
 // @license      GPL-3.0-or-later
 // @grant        GM_addStyle
 // ==/UserScript==
-
-//TODO: don't use document-start in header! may not need first MutationObs?
-
-/* DONE:
+/*
+DONE:
         [x] identify location
         [x] jquery or not? NOT. Do I want to use it?
         [x] create simple button & add to page
@@ -21,14 +19,21 @@
 TODO: now make it work with all elements
 
 Steps: 
-        [ ] 1. Test adding button to feats page
-        [ ] 2. Test on sidebar
+        [x] 1. Test adding button to feats page
+        [x] 2. Test on sidebar
+        [ ] 3. Add MutationObserver for
+                [-] feats
+                [-] actions
+                [-] sidebar
+                (note: if a section appears, disappears and reappears - will the buttons have to be recreated, or not?)
+        [ ] 4. Add MutationObserver for popup windows
 
 POLISH (late-game steps)
         [ ] design (upload?) a subtle "copy" button to match the Pathbuilder theme
         [ ] add action icons after the title ◇◆↩︎
         [ ] add a visual indicator when the copy succeeds (HTML5 on the button?)
         [ ] make work with light AND dark styles
+        [ ] optional setting: in sidebar, hide the copy button until you reveal the feat contents.
 ----------------------------------------------------------------------------------------------------------------------*/
 
 (function() {
@@ -44,32 +49,29 @@ POLISH (late-game steps)
     })
     sheetObserver.observe (document.body, {childList: true})
 
-    // done! run the rest of the script.
     function modifyCharSheet() {
 
-        // Character sheet section ----------------------------
-        // Feats tab
-        const featBlock = document.querySelector('.listview-item')
-        const featNameDiv = featBlock.querySelector('.top-div.listview-topdiv')
-        //const featNameDiv = document.querySelectorAll('.top-div.listview-topdiv')
-        
-        const featText = { // TODO maybe include the action icons (emoji? ◇◆↩︎)
-            Title: featBlock.querySelector('.listview-title').textContent,
-            Info: featBlock.querySelector('.listview-detail').textContent
+        // SIDEBAR: Get feature elements and loop through them
+        const features = document.querySelectorAll('.listview-item')
+        for (const featBlock of features) { // for NodeLists, use for...of
+            
+            const topDiv = featBlock.querySelector('.top-div.listview-topdiv')
+            const featText = {
+                Title: topDiv.querySelector('.listview-title').textContent,
+                Info: featBlock.querySelector('.listview-detail').textContent
+            }
+            const formattedFeatText = '**' + featText.Title + '**\n' + featText.Info
+
+            // Create and append a button
+            const copyButton = createButton ('div', 'div-button-simple copy-button', function(event) {
+                event.stopPropagation() // stop from bubbling
+                copyToClipboard(formattedFeatText)
+            })
+            topDiv.append(copyButton)
         }
-        const formattedFeatText =
-        `**${featText.Title}**
-        ${featText.Info}`;
+    }    
 
-        // Make button
-        const buttonTest = createButton ('div', 'div-button-simple copy-button', function(event) {
-            event.stopPropagation() // stop from bubbling
-            copyToClipboard(formattedFeatText)
-        })
-        featNameDiv.appendChild(buttonTest)
-    }
-
-    //for...of (for nodelists like queryselectorall)
+    // TODO: in the feats section, topDiv.prepend
 
 /*----------------------------------------------------------------------------------------------*/
     async function copyToClipboard(text) {
