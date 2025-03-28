@@ -61,15 +61,22 @@ POLISH (late-game steps)
 
         // define the selectors for the different page regions
         // MAYBE make a class with properties "element" and "buttonPos" - or define a method within the object?
+
         const region = {
-            Sidebar: document.querySelector('#divBuildLevels'),
-            Sheet: document.querySelector('.tabbed-area-display-holder'),
+            Sidebar: {
+                element: document.querySelector('#divBuildLevels'),
+                placeButton (targetLocation, button) {targetLocation.append(button)}
+            },
+            Sheet: {
+                element: document.querySelector('.tabbed-area-display-holder'),
+                placeButton (targetLocation, button) {targetLocation.prepend(button)}
+            }
         }
 
         // SIDEBAR: when any features change/are added, the entire sidebar resets, so re-add buttons
         addButtons(region.Sidebar)
         const sidebarObserver = new MutationObserver(() => addButtons(region.Sidebar))
-        sidebarObserver.observe (region.Sidebar, {childList:true, subtree:true})
+        sidebarObserver.observe (region.Sidebar.element, {childList:true, subtree:true})
 
         // SHEET: Check if tab, character level or features change (which recreates the content of the tabbed display area)
         const tabbedAreaObserver = new MutationObserver(function() {
@@ -77,20 +84,21 @@ POLISH (late-game steps)
             console.log('On a valid tab! Adding buttons')
             addButtons(region.Sheet)
         })
-        tabbedAreaObserver.observe (region.Sheet, {childList:true, subtree:true})
+        tabbedAreaObserver.observe (region.Sheet.element, {childList:true, subtree:true})
 
         function currentTabIsValid() {
-            let selectedTab = document.querySelector('.tabbed-area-menu .section-menu.section-menu-selected').textContent
-            return selectedTab==='Spells' && selectedTab==='Feats' && selectedTab==='Actions'
+            const selectedTab = document.querySelector('.tabbed-area-menu .section-menu.section-menu-selected').textContent
+            return selectedTab==='Spells' || selectedTab==='Feats' || selectedTab==='Actions'
         }
         
         // Get feature elements, loop through them and add a button (position dependent on page section)
         function addButtons (pageRegion){
-            const features = pageRegion.querySelectorAll('.listview-item:not(.has-copybutton)')
+            const features = pageRegion.element.querySelectorAll('.listview-item:not(.has-copybutton)')
             for (const featBlock of features) {
                 const topDiv = featBlock.querySelector('.top-div.listview-topdiv')
                 const featText = {
                     Title: topDiv.querySelector('.listview-title').textContent,
+                    //Traits: [...document.querySelectorAll('span.trait')].map((el) => el.textContent).join(", ")
                     Info: featBlock.querySelector('.listview-detail').textContent
                 }
                 const formattedFeatText = '**' + featText.Title + '**\n' + featText.Info
@@ -98,15 +106,11 @@ POLISH (late-game steps)
                 // MAYBE: if no other buttons are needed, simplify the function
                 // Create and append a button
                 const copyButton = createButton ('div', 'div-button-simple copy-button', function(event) {
-                    event.stopPropagation() // stop from bubbling // MAYBE custom method for clarity?
+                    event.stopPropagation() // stop from bubbling 
                     copyToClipboard(formattedFeatText)
                 })
 
-                if (pageRegion===region.Sidebar) {
-                    topDiv.append(copyButton)
-                } else {
-                    topDiv.prepend(copyButton)
-                }
+                pageRegion.placeButton(topDiv, copyButton)
                 featBlock.classList.add('has-copybutton') // ensure button is only added once
             }
         }
@@ -116,7 +120,7 @@ POLISH (late-game steps)
         try {
             await navigator.clipboard.writeText(text);
         } catch (error) {
-            console.error('failed to copy to clipboard'); // MAYBE: remove try/catch
+            console.error('failed to copy to clipboard'); // TODO remove try/catch once development is finished
         }
     }
 
