@@ -1,15 +1,17 @@
 // ==UserScript==
 // @name         Copy button for Pathbuilder
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      0.4
-// @description  Adds a copy button to Pathbuilder's feat, feature and item descriptions.
+// @version      0.5
+// @description  Adds a copy button to Pathbuilder's feature and action descriptions.
 // @author       CertifiedDiplodocus
 // @match        http*://pathbuilder2e.com/app.html*
 // @icon         https://pathbuilder2e.com/favicon.ico
 // @license      GPL-3.0-or-later
 // @grant        GM_addStyle
 // ==/UserScript==
+
 /* eslint-disable no-fallthrough */
+
 /*
 DONE:
         [x] identify location
@@ -19,22 +21,23 @@ DONE:
 
 TODO: now make it work with all elements
 
-Steps: 
+Steps:
         [x] 1. Test adding button to feats page
         [x] 2. Test on sidebar
         [x] 3. Add MutationObserver for
                 [x] feats
                 [x] actions
-                [x] spells 
+                [x] spells
                     [x]] > rituals! impulses! there may be more tabs for different classes...
                 [x] sidebar during updates!
 
-        [ ] 3b. Rejigger with promises (or fix region position)
-
-        [ ] 4. Add MutationObserver for popup windows
+        [x] 3b. Rejigger with promises (or fix region position)
+        [x] 4. Add MutationObserver for popup windows
+                [x] get button to copy the currently open text, not the text when the button was created
         [ ] 5. Test with multiple open sheets
 
         [ ] 6. (IMPORTANT) Format copied text to account for traits & source
+        [ ] 7. Handle items (lower priority - maybe just hide copy button in the modal, for now)
 
 POLISH (late-game steps)
         [ ] design (upload?) a subtle "copy" button to match the Pathbuilder theme
@@ -42,26 +45,24 @@ POLISH (late-game steps)
         [ ] add a visual indicator when the copy succeeds (HTML5 on the button?)
         [ ] make work with light AND dark styles
         [ ] optional setting: in sidebar, hide the copy button until you reveal the feat contents.
-----------------------------------------------------------------------------------------------------------------------*/
+---------------------------------------------------------------------------------------------------------------------- */
 
-(function() {
-    'use strict';
+(function () {
+    'use strict'
 
     // wait for the user to load a character sheet
     const sheetObserver = new MutationObserver (()=>{
-        const sheetIsVisible = document.getElementById('main-container').offsetParent //https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetParent
+        const sheetIsVisible = document.getElementById('main-container').offsetParent // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetParent
         if (sheetIsVisible) {
             sheetObserver.disconnect()
-            modifyCharSheet()
+            addFeatureObservers()
         }
     })
     sheetObserver.observe (document.body, {childList: true})
 
-    function modifyCharSheet() {
+    function addFeatureObservers() {
 
         // define the selectors for the different page regions
-        // MAYBE make a class with properties "element" and "buttonPos" - or define a method within the object?
-
         const region = {
             Sidebar: {
                 element: document.querySelector('#divBuildLevels'),
@@ -74,48 +75,86 @@ POLISH (late-game steps)
         }
 
         // SIDEBAR: when any features change/are added, the entire sidebar resets, so re-add buttons
-        addButtons(region.Sidebar)
-        const sidebarObserver = new MutationObserver(() => addButtons(region.Sidebar))
+        addButtonToEachFeature(region.Sidebar)
+        const sidebarObserver = new MutationObserver(() => addButtonToEachFeature(region.Sidebar))
         sidebarObserver.observe (region.Sidebar.element, {childList:true, subtree:true})
 
         // SHEET: Check if tab, character level or features change (which recreates the content of the tabbed display area)
+        const selectedTab = document.querySelector('.tabbed-area-menu .section-menu.section-menu-selected').textContent
+        const tabsWithFeatures = ['Spells', 'Feats', 'Actions']
+
         const tabbedAreaObserver = new MutationObserver(function() {
-            if (!currentTabIsValid) {return;}
+            if (!tabsWithFeatures.includes(selectedTab)) {return;}
             console.log('On a valid tab! Adding buttons')
-            addButtons(region.Sheet)
+            addButtonToEachFeature(region.Sheet)
         })
         tabbedAreaObserver.observe (region.Sheet.element, {childList:true, subtree:true})
 
-        function currentTabIsValid() {
-            const selectedTab = document.querySelector('.tabbed-area-menu .section-menu.section-menu-selected').textContent
-            return selectedTab==='Spells' || selectedTab==='Feats' || selectedTab==='Actions'
-        }
-        
-        // Get feature elements, loop through them and add a button (position dependent on page section)
-        function addButtons (pageRegion){
-            const features = pageRegion.element.querySelectorAll('.listview-item:not(.has-copybutton)')
-            for (const featBlock of features) {
-                const topDiv = featBlock.querySelector('.top-div.listview-topdiv')
-                const featText = {
-                    Title: topDiv.querySelector('.listview-title').textContent,
-                    //Traits: [...document.querySelectorAll('span.trait')].map((el) => el.textContent).join(", ")
-                    Info: featBlock.querySelector('.listview-detail').textContent
+        // MODAL: if the modal window is opened, add a "copy" button to its menu
+        const modalObserver = new MutationObserver(
+            function(mutationList) {
+                for (const mutation of mutationList) {
+                    if (!mutation.type === 'childList') {console.log('this shouldn\'t happen, right?'); continue;}
+                    for (const addedNode of mutation.addedNodes) {
+                        if (!addedNode.type === 1) {continue;} // elements only
+                        if (addedNode.id === 'root') {addButtonToModal()}
+                    }
                 }
-                const formattedFeatText = '**' + featText.Title + '**\n' + featText.Info
-
-                // MAYBE: if no other buttons are needed, simplify the function
-                // Create and append a button
-                const copyButton = createButton ('div', 'div-button-simple copy-button', function(event) {
-                    event.stopPropagation() // stop from bubbling 
-                    copyToClipboard(formattedFeatText)
-                })
-
-                pageRegion.placeButton(topDiv, copyButton)
-                featBlock.classList.add('has-copybutton') // ensure button is only added once
             }
+        )
+        modalObserver.observe (document.body, {childList:true})
+    }
+    // FIXME: this also creates a button in the item description. The relevant div is not found, so copying fails.
+    // MODAL COPY BUTTON (bottom right). On click, copy the text which is currently open.
+    function addButtonToModal () {
+        const copyButton = createButton('div', 'modal-button copy-button-modal', 'Copy', function () {
+            const featureInfo = document.querySelector('.div-info-lm-box')
+            const formattedFeatText = new featText(featureInfo).formatted()
+            copyToClipboard(formattedFeatText)
+        })
+        document.querySelector('.modal-buttons').append(copyButton)
+    }
+
+    // SHEET BUTTONS. Get feature elements, loop through them and add a button (position dependent on page section)
+    function addButtonToEachFeature (pageRegion){
+        const features = pageRegion.element.querySelectorAll('.listview-item:not(.has-copybutton)')
+        for (const featBlock of features) {
+            const formattedFeatText = new featText(featBlock).formatted()
+
+            // Create and append a button
+            const copyButton = createButton ('div', '.div-button-simple copy-button-main', '📋︎', function(event) { // 📋📋︎
+                event.stopPropagation() // prevent bubbling (keep feature text open)
+                copyToClipboard(formattedFeatText)
+            })
+
+            const topDiv = featBlock.querySelector('.top-div.listview-topdiv')
+            pageRegion.placeButton(topDiv, copyButton)
+            featBlock.classList.add('has-copybutton') // ensure button is only added once // MAYBE unnecessary now? could deactivate/reactivate observer instead
         }
-    } 
-/*----------------------------------------------------------------------------------------------*/
+    }
+
+    // define, assign & format the feature text (expected parameter: block containing title and detail elements)
+    class featText {
+        constructor(featBlock) {
+            this.Title = featBlock.querySelector('.listview-title').textContent
+            // actionIcon
+            // level
+            this.Traits = [...featBlock.querySelectorAll('span.trait')].map((el) => el.textContent).join(", ")
+            const detailsChildEls = featBlock.querySelector('.listview-detail').children // 3 children:
+            this.Details = detailsChildEls.item(1).textContent
+            // source
+        }
+        formatted() {// TODO fix spacing
+            return `** ${this.Title} **\n\
+            ${this.Details}`
+        }
+    }
+
+    /*----------------------------------------------------------------------------------------------*/
+    function rmIndentSpaces (stringWithSpaces) {
+        return stringWithSpaces.replaceAll(/[ ]{4}/,'')
+    }
+    
     async function copyToClipboard(text) {
         try {
             await navigator.clipboard.writeText(text);
@@ -124,24 +163,27 @@ POLISH (late-game steps)
         }
     }
 
-    // Create a button with an event listener
-    function createButton (elementType, buttonClass, callbackFunction) {
+    // Create a button with an event listener //MAYBE: hardcode 'div'
+    function createButton (elementType, buttonClass, buttonText, callbackFunction) {
         const newButton = document.createElement (elementType)
         newButton.className = buttonClass
-        newButton.textContent = '📋︎' // 📋📋︎
+        newButton.textContent = buttonText
         newButton.addEventListener ('click', callbackFunction, false)
         return newButton
     }
 
     // TODO get colours from page style (match dark/light)
     GM_addStyle (`
-    .copy-button {
+    .copy-button-main {
         color: #2d4059;
         border: none;
     }
-    .copy-button:hover {
+    .copy-button-main:hover {
         color: #ff5722; 
         border: none;
+    }
+    .copy-button-modal {
+        float: right;
     }
     `)
     //.listview-title:hover // TODO inherit this? maybe use the .listview-title class, and override unwanted settings (+cursor)
