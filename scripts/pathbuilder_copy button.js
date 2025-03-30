@@ -10,7 +10,6 @@
 // @grant        GM_addStyle
 // ==/UserScript==
 
-
 /* eslint-disable no-fallthrough */
 
 /*
@@ -35,9 +34,9 @@ Steps:
         [x] 3b. Rejigger with promises (or fix region position)
         [x] 4. Add MutationObserver for popup windows
                 [x] get button to copy the currently open text, not the text when the button was created
-        [ ] 5. Test with multiple open sheets
 
-        [ ] 6. (IMPORTANT) Format copied text to account for traits & source
+        [ ] 5. Format copied text to account for traits & source
+        [ ] 6. Test with multiple open sheets
         [ ] 7. Handle items (lower priority - maybe just hide copy button in the modal, for now)
 
 POLISH (late-game steps)
@@ -46,6 +45,7 @@ POLISH (late-game steps)
         [ ] add a visual indicator when the copy succeeds (HTML5 on the button?)
         [ ] make work with light AND dark styles
         [ ] optional setting: in sidebar, hide the copy button until you reveal the feat contents.
+        [ ] convert formatted descriptions (with inline html) to markdown (see copy script)
 ---------------------------------------------------------------------------------------------------------------------- */
 
 (function () {
@@ -80,11 +80,11 @@ POLISH (late-game steps)
         const sidebarObserver = new MutationObserver(() => addButtonToEachFeature(region.Sidebar))
         sidebarObserver.observe (region.Sidebar.element, {childList:true, subtree:true})
 
-        // SHEET: Check if tab, character level or features change (which recreates the content of the tabbed display area)
-        const selectedTab = document.querySelector('.tabbed-area-menu .section-menu.section-menu-selected').textContent
+        // SHEET: Check if tab, character level or features change (which resets the content of the tabbed display area)
         const tabsWithFeatures = ['Spells', 'Feats', 'Actions']
 
         const tabbedAreaObserver = new MutationObserver(function() {
+            const selectedTab = document.querySelector('.tabbed-area-menu .section-menu.section-menu-selected').textContent
             if (!tabsWithFeatures.includes(selectedTab)) {return;}
             console.log('On a valid tab! Adding buttons')
             addButtonToEachFeature(region.Sheet)
@@ -105,7 +105,33 @@ POLISH (late-game steps)
         )
         modalObserver.observe (document.body, {childList:true})
     }
-    // FIXME: this also creates a button in the item description. The relevant div is not found, so copying fails.
+/* FIXME: this also creates a button in the item description. The relevant div is not found, so copying fails. DISABLE if items are displayed.
+        - Feat buttons: accept/cancel/prd
+            div#content > .div-listview-scroller
+                          .div-listview-info > .div-info-lm-box > .top-div.listview-topdiv > (title)
+                                                                  .listview-detail > traits, description, source (3 unclassed divs)
+    If items are open, then
+        - armour-change/weapons-change/add gear: buy/give/cancel/prd/custom
+            div#content > .div-listview-scroller
+                          .div-info-lm-box > .top-div.listview-topdiv > (title)
+                                             .listview-detail > traits, description, source (3 unclassed divs)
+        - runes: buy/give/cancel/prd/potency/resilient
+            div#content > .div-listview-scroller
+                          .div-info-lm-box > .top-div.listview-topdiv > (title)
+                                             .listview-detail > traits, description, source (3 unclassed divs)
+        - weapons/armour options: accept/cancel
+            div#content > .scrollable > .layout-item(4) - not all traits, just crit spec and text. Maybe best omitted
+        - gear tab: equipment info: accept/cancel
+            div#content > .scrollable > .listview-item > .top-div.listview-topdiv > (title)
+                                                         .listview-detail > description (1st div)
+        - add gear: buy/give/cancel/prd/custom (problem: more than one can be selected. IDEA: disable/grey out copy button if this is the case?)
+            div#content > .div-listview-scroller
+                          .div-info-lm-box > .listview-item > .top-div.listview-topdiv > (title)
+                                                              .listview-detail > traits, description, source (3 unclassed divs)
+
+Maybe watch for a click event in the sidebar to open features?
+        */
+
     // MODAL COPY BUTTON (bottom right). On click, copy the text which is currently open.
     function addButtonToModal () {
         const copyButton = createButton('div', 'modal-button copy-button-modal', 'Copy', function () {
