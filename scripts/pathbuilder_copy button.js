@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Copy button for Pathbuilder
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      0.5
+// @version      0.5.1
 // @description  Adds a copy button to Pathbuilder's feature and action descriptions.
 // @author       CertifiedDiplodocus
 // @match        http*://pathbuilder2e.com/app.html*
@@ -9,7 +9,6 @@
 // @license      GPL-3.0-or-later
 // @grant        GM_addStyle
 // ==/UserScript==
-
 
 /* eslint-disable no-fallthrough */
 
@@ -35,9 +34,9 @@ Steps:
         [x] 3b. Rejigger with promises (or fix region position)
         [x] 4. Add MutationObserver for popup windows
                 [x] get button to copy the currently open text, not the text when the button was created
-        [ ] 5. Test with multiple open sheets
 
-        [ ] 6. (IMPORTANT) Format copied text to account for traits & source
+        [ ] 5. Format copied text to account for traits & source
+        [ ] 6. Test with multiple open sheets
         [ ] 7. Handle items (lower priority - maybe just hide copy button in the modal, for now)
 
 POLISH (late-game steps)
@@ -46,6 +45,7 @@ POLISH (late-game steps)
         [ ] add a visual indicator when the copy succeeds (HTML5 on the button?)
         [ ] make work with light AND dark styles
         [ ] optional setting: in sidebar, hide the copy button until you reveal the feat contents.
+        [ ] convert formatted descriptions (with inline html) to markdown (see copy script)
 ---------------------------------------------------------------------------------------------------------------------- */
 
 (function () {
@@ -80,11 +80,11 @@ POLISH (late-game steps)
         const sidebarObserver = new MutationObserver(() => addButtonToEachFeature(region.Sidebar))
         sidebarObserver.observe (region.Sidebar.element, {childList:true, subtree:true})
 
-        // SHEET: Check if tab, character level or features change (which recreates the content of the tabbed display area)
-        const selectedTab = document.querySelector('.tabbed-area-menu .section-menu.section-menu-selected').textContent
+        // SHEET: Check if tab, character level or features change (which resets the content of the tabbed display area)
         const tabsWithFeatures = ['Spells', 'Feats', 'Actions']
 
         const tabbedAreaObserver = new MutationObserver(function() {
+            const selectedTab = document.querySelector('.tabbed-area-menu .section-menu.section-menu-selected').textContent
             if (!tabsWithFeatures.includes(selectedTab)) {return;}
             console.log('On a valid tab! Adding buttons')
             addButtonToEachFeature(region.Sheet)
@@ -99,13 +99,69 @@ POLISH (late-game steps)
                     for (const addedNode of mutation.addedNodes) {
                         if (!addedNode.type === 1) {continue;} // elements only
                         if (addedNode.id === 'root') {addButtonToModal()}
+                        /* BUG. To reproduce:
+                            1. open a normal modal, e.g. feats
+                            2. click on a trait. A second modal window appears (new div#root!)
+                            3. button will be added to the FIRST modal. Keep doing so, more buttons are added
+                        Proposed solution: add a parameter specifying the modal in question
+                        */
                     }
                 }
             }
         )
         modalObserver.observe (document.body, {childList:true})
     }
-    // FIXME: this also creates a button in the item description. The relevant div is not found, so copying fails.
+/* FIXME: this also creates a button in the item description. The relevant div is not found, so copying fails. DISABLE if items are displayed.
+    - class, ancestry, feat: accept/cancel/prd
+        div#content > .div-listview-scroller
+                        .div-listview-info > .div-info-lm-box > .top-div.listview-topdiv > (title)
+                                                                .listview-detail > traits, description, source (3 unclassed divs)
+    - armour-change/weapons-change/add gear: buy/give/cancel/prd/custom
+        div#content > .div-listview-scroller
+                        .div-listview-info > .div-info-lm-box > .top-div.listview-topdiv > (title)
+                                                                .listview-detail > traits, description, source (3 unclassed divs)
+    - runes: buy/give/cancel/prd/potency/resilient
+        div#content > .div-listview-scroller
+                        .div-listview-info > .div-info-lm-box > .top-div.listview-topdiv > (title)
+                                                                .listview-detail > traits, description, source (3 unclassed divs)
+    - add gear: buy/give/cancel/prd/custom (problem: more than one can be selected. IDEA: disable/grey out copy button if this is the case?)
+        div#content > .div-listview-scroller
+                        .div-listview-info >   .listview-item > .top-div.listview-topdiv > (title)
+                                                                .listview-detail > traits, description, source (3 unclassed divs)
+    ---------------------------------------------------------------------------
+    - weapons/armour options: accept/cancel
+        div#content > .scrollable > .layout-item(4th) - not all traits, just crit spec and text. Maybe best omitted
+    - gear tab: equipment info: accept/cancel
+        div#content > .scrollable > .listview-item >            .top-div.listview-topdiv > (title)
+                                                                .listview-detail > description (1st div)
+    ---------------------------------------------------------------------------
+    - trait description: accept
+        div.modal-content > dialog-top-bar (title)                      ... this is the container for all the other modals
+                            2nd child div (sibling to title div) (desc)
+                                                            
+Selectors for (descriptions with traits)
+    - feats, classes, ancestries:   '.div-listview-info > .div-info-lm-box'
+    - armour/weapons/runes shops:   '.div-listview-info > .div-info-lm-box'
+    - gear shop:                    '.div-listview-info > .listview-item'     (more than 1 .listview-item may exist)
+In all cases, title = '.top-div.listview-topdiv>.listview-title' and traits/desc/source are in 3 divs within '.listview-detail'
+Note: it is possible for the box to be blank (.div-listview-info exists, > .div-info-lm-box does not)
+---------------------------------------------------------------------------
+Selectors for item descriptions (title + descriptions only)   
+    - weapon/armour options:        '.scrollable > .layout-item:nth-of-type(3)'     ... traits are hard to get, but info on crit spec
+    - gear tab description click:   '.scrollable > .listview-item'                  ... same title/info selectors!
+---------------------------------------------------------------------------
+If no other selector works, then, it's the trait dialog
+    - trait:                        '.modal-content' 
+
+  */
+ const elSelectors = {
+    feat: '.div-listview-info > .div-info-lm-box',
+    shop: '.div-listview-info > .div-info-lm-box',
+    gearMultiselect: '.div-listview-info > .listview-item',
+    weaponArmourOptions: '.scrollable > .layout-item:nth-of-type(3)',
+    gearDesc: '.scrollable > .listview-item'
+ }
+
     // MODAL COPY BUTTON (bottom right). On click, copy the text which is currently open.
     function addButtonToModal () {
         const copyButton = createButton('div', 'modal-button copy-button-modal', 'Copy', function () {
