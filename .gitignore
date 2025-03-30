@@ -3,3 +3,5 @@ node_modules
 package-lock.json
 package.json
 eslint.config.mjs
+eslint.config_BACKUP_NIMG.mjs
+scraps.js
