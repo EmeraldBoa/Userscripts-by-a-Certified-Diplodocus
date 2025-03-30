@@ -220,6 +220,7 @@ this.$ = this.jQuery = jQuery.noConflict(true); // Prevent conflict with website
     }
 
     //https://stackoverflow.com/questions/33855641/copy-output-of-a-javascript-variable-to-the-clipboard
+    // TODO: use writeText(newClipText) instead of deprecated .execCommand
     function copyToClipboard(text) {
         var dummy = document.createElement("textarea");
         // to avoid breaking orgain page when copying more words
