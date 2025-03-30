@@ -12,7 +12,9 @@
 // @license      GPL-3.0-or-later
 // @grant        none
 // @run-at       document-start
+
 // ==/UserScript==
+
 /* Icon by FSock on Wikimedia Commons. Licensed under CC4.0 https://creativecommons.org/licenses/by/4.0/deed.en
 https://commons.wikimedia.org/wiki/File:Cib-archive-of-our-own_(CoreUI_Icons_v1.0.0).svg
 
@@ -45,10 +47,8 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
 
         // You want to see one at least one of these relationships/character tags... (case insensitive)
         relationships: ['Eraserhead.*&.*Toshinori', 'Toshinori.*&.*Eraserhead'],
-        characters: ['Yagi Toshinori', 'Toshinori Yagi', 'All Might',
-                     'Aizawa Shouta', 'Shouta Aizawa', 'Eraserhead',
-                     'Musashi . Jessie', 'Kojirou . James', 'Nyarth . Team Rocket Meowth', 'Team Rocket Trio',
-                     'Spy.*Team Fortress 2', 'Ishtar'],
+        characters: ['Toshinori', 'All Might', 'Aizawa Sho?ta', 'Sho?ta Aizawa', 'Eraserhead',
+                     '(Lin|Chief) Bei?fong', 'Ishtar'],
 
         relLim: 0, //  ...within the first N relationship tags. (0: ignore relationships)
         charLim: 3, // ...within the first N character tags. (0: ignore characters)
@@ -56,8 +56,8 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
         //----------------------------------------------------------------------------------------------------
 
         // Relationships/characters you DON'T want to see...
-        excludedRelationships: ['Eraserhead.*/.*Toshinori', 'Toshinori.*/.*Eraserhead'],
-        excludedCharacters: ['Izuku', 'Bakugou'],
+        excludedRelationships: ['Eraserhead.*/.*Toshinori', 'Toshinori.*/.*Eraserhead', '/.*Enkidu.*/'],
+        excludedCharacters: ['Izuku', 'Bakugo'],
 
         xRelLim: 3, //   ...within the first X relationship tags (0: do nothing)
         xCharLim: 1, // ...within the first Y character tags    (0: do nothing)
@@ -80,9 +80,11 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
         HIDE all fics with OCs in first or second place
 
         Example 3 (with regex): you want Katara shipfic *except* with Aang, but don't mind if they're in the background*/
-        //  relationships: ['(!Aang.*/).*Katara.*(!/.*Aang)']
+//          relationships: ['(!Aang.*/).*Katara.*(!/.*Aang)']
         /*          charLim: 1 (first ship is Katara/someone)
-*/
+
+        Example 4 (with regex): I see no ships
+//          excludedRelationships: ['/']
 
 /*      *** SOME NOTES ON REGEXP AND SEARCH RESULTS *******************************
 
