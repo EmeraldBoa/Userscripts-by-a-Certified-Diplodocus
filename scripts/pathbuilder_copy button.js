@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Copy button for Pathbuilder
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      0.5.1
+// @version      0.5.2
 // @description  Adds a copy button to Pathbuilder's feature and action descriptions.
 // @author       CertifiedDiplodocus
 // @match        http*://pathbuilder2e.com/app.html*
@@ -36,16 +36,19 @@ Steps:
                 [x] get button to copy the currently open text, not the text when the button was created
 
         [ ] 5. Format copied text to account for traits & source
-        [ ] 6. Test with multiple open sheets
+                [x] features, classes, feats
+                [ ] items
+        [x] 6. Test with multiple open sheets
+            (Works, but mutation observers fires for the hidden tabs too - though not visible in the HTML. //HACK?)
         [ ] 7. Handle items (lower priority - maybe just hide copy button in the modal, for now)
 
 POLISH (late-game steps)
         [ ] design (upload?) a subtle "copy" button to match the Pathbuilder theme
         [ ] add action icons after the title ◇◆↩︎
-        [ ] add a visual indicator when the copy succeeds (HTML5 on the button?)
         [ ] make work with light AND dark styles
         [ ] optional setting: in sidebar, hide the copy button until you reveal the feat contents.
-        [ ] convert formatted descriptions (with inline html) to markdown (see copy script)
+        [x] convert formatted descriptions (with inline html) to markdown (see copy script)
+        [ ] format as template
 ---------------------------------------------------------------------------------------------------------------------- */
 
 (function () {
@@ -190,28 +193,68 @@ If no other selector works, then, it's the trait dialog
         }
     }
 
+    function getActionIcon(imgUrl) {
+        if (!imgUrl) {return}
+        for (const action in actionSymbols){
+            if (imgUrl.includes(action)) {return actionSymbols[action]}
+        }
+    }
+    const actionSymbols = {
+        reaction: '↩︎',
+        action_free: '◇',
+        action_single: '◆',
+        action_double: '◆◆'
+    }
+
     // define, assign & format the feature text (expected parameter: block containing title and detail elements)
+    /* SIDEBAR: 
+        - show ActionIcons if they exist
+        - get level from the sidebar (<aside aria-label="Level 18 Options">) - maybe iterate through sidebar sections?
+        - get traits if they exist
+        
+    */
     class featText {
         constructor(featBlock) {
-            this.Title = featBlock.querySelector('.listview-title').textContent
-            // actionIcon
-            // level
-            this.Traits = [...featBlock.querySelectorAll('span.trait')].map((el) => el.textContent).join(", ")
-            const detailsChildEls = featBlock.querySelector('.listview-detail').children // 3 children:
-            this.Details = detailsChildEls.item(1).textContent
-            // source
+            // handle elements which don't exist (e.g. feat with no actions) with the optional chaining operator (?.)
+            const topDiv = featBlock.querySelector('.top-div.listview-topdiv')
+            this.Title = topDiv.querySelector('.listview-title').textContent
+            this.ActionIcon = getActionIcon(topDiv.querySelector('.action-icon')?.src)
+            this.Level = topDiv.querySelector('listview-item-level')?.textContent
+            const details = featBlock.querySelector('.listview-detail') // 3 children:
+            this.Traits = [...details.querySelectorAll('span.trait')].map((el) => el.textContent).join(", ")
+            this.Details = details.children.item(1).innerHTML // get formatted text
+            this.Source = details.querySelector('.copyright')?.textContent
         }
-        formatted() {// TODO fix spacing
-            return `** ${this.Title} **\n\
-            ${this.Details}`
+        formatted() {
+            const level = this.Level ? ` [${this.Level}]` : ''
+            const line1 = `**${this.Title}** ${this.ActionIcon ?? ''}${level}`
+            const line2 = this.Traits ? `*${this.Traits}*` : ''
+            const line3 = htmlToMarkdown(this.Details)
+            const line4 = this.Source ? `\`${this.Source}\`` : ''
+            return [line1, line2, line3, line4].filter(Boolean).join('\n')
         }
     }
 
-    /*----------------------------------------------------------------------------------------------*/
-    function rmIndentSpaces (stringWithSpaces) {
-        return stringWithSpaces.replaceAll(/[ ]{4}/,'')
+    // function to convert HTML tags to markdown
+    function htmlToMarkdown(formattedText) {
+        if (!formattedText.includes('<')) { return formattedText } // check for presence of tags
+        const rx = {
+            break: RegExp(/<br\s*[\/]?>/gi),
+            bold: RegExp(/<[\/]?b>/gi),
+            italic: RegExp(/<[/]?i>/gi),
+            subtitleDivs: RegExp(/<div class="subtitle".+>|<\/div>/gi)
+        }
+        formattedText = formattedText
+            .replaceAll(rx.subtitleDivs, '')
+            .replaceAll(rx.break, '\n')
+            //TODO handle <p> - unexpectedly used in some places!
+            .replaceAll(/[\n]{3,}/gi, '\n\n') // max two linebreaks. //FIXME May not work if there is whitespace - test?
+            .replaceAll(rx.bold, '**')
+            .replaceAll(rx.italic, '*')
+        return formattedText
     }
-    
+
+    /*----------------------------------------------------------------------------------------------*/
     async function copyToClipboard(text) {
         try {
             await navigator.clipboard.writeText(text);
@@ -246,3 +289,14 @@ If no other selector works, then, it's the trait dialog
     //.listview-title:hover // TODO inherit this? maybe use the .listview-title class, and override unwanted settings (+cursor)
 
 })();
+
+// Unused functions ----------------------------------------------------------------------------------------
+function formatToMarkdown (title, details, actionIcon, traits, source, level) {
+    // if variable is unassigned, return unassigned, otherwise format
+    title &&= `**${title}**` // assign only if left is truthy (will fail if left = 0!)
+    actionIcon &&= ` ${actionIcon}`
+    traits &&= traits + '\n'
+    source &&= `*${source}*`
+    level &&= `[${level}]`
+    return [title, traits, details, source].filter(Boolean).join('\n')
+}
