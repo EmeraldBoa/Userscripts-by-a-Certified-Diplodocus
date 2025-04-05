@@ -101,13 +101,7 @@ POLISH (late-game steps)
                     if (!mutation.type === 'childList') {console.log('this shouldn\'t happen, right?'); continue;}
                     for (const addedNode of mutation.addedNodes) {
                         if (!addedNode.type === 1) {continue;} // elements only
-                        if (addedNode.id === 'root') {addButtonToModal()}
-                        /* BUG. To reproduce:
-                            1. open a normal modal, e.g. feats
-                            2. click on a trait. A second modal window appears (new div#root!)
-                            3. button will be added to the FIRST modal. Keep doing so, more buttons are added
-                        Proposed solution: add a parameter specifying the modal in question
-                        */
+                        if (addedNode.id === 'root') {addButtonToModal(addedNode)}
                     }
                 }
             }
@@ -145,7 +139,7 @@ POLISH (late-game steps)
 Selectors for (descriptions with traits)
     - feats, classes, ancestries:   '.div-listview-info > .div-info-lm-box'
     - armour/weapons/runes shops:   '.div-listview-info > .div-info-lm-box'
-    - gear shop:                    '.div-listview-info > .listview-item'     (more than 1 .listview-item may exist)
+    - gear shop:                    '.div-listview-info > .listview-item'     (more than 1 .listview-item may exist) // MAYBE use the code from addButtonToEachFeature?
 In all cases, title = '.top-div.listview-topdiv>.listview-title' and traits/desc/source are in 3 divs within '.listview-detail'
 Note: it is possible for the box to be blank (.div-listview-info exists, > .div-info-lm-box does not)
 ---------------------------------------------------------------------------
@@ -160,31 +154,33 @@ If no other selector works, then, it's the trait dialog
  const elSelectors = {
     feat: '.div-listview-info > .div-info-lm-box',
     shop: '.div-listview-info > .div-info-lm-box',
-    gearMultiselect: '.div-listview-info > .listview-item',
+    shopMultiselect: '.div-listview-info > .listview-item', // last one is same as feature selector
     weaponArmourOptions: '.scrollable > .layout-item:nth-of-type(3)',
     gearDesc: '.scrollable > .listview-item'
  }
 
     // MODAL COPY BUTTON (bottom right). On click, copy the text which is currently open.
-    function addButtonToModal () {
+    //TODO: if shopMultiselect, then loop through the items and concatenate the featInfo for each one
+    // in loop, track i++, then switch(i)
+    function addButtonToModal (targetNode) {
         const copyButton = createButton('div', 'modal-button copy-button-modal', 'Copy', function () {
-            const featureInfo = document.querySelector('.div-info-lm-box')
-            const formattedFeatText = new featText(featureInfo).formatted()
-            copyToClipboard(formattedFeatText)
+            const block = targetNode.querySelector('.div-info-lm-box')
+            const formattedInfo = new featInfo(block).formatted()
+            copyToClipboard(formattedInfo)
         })
-        document.querySelector('.modal-buttons').append(copyButton)
+        targetNode.querySelector('.modal-buttons').append(copyButton)
     }
 
     // SHEET BUTTONS. Get feature elements, loop through them and add a button (position dependent on page section)
     function addButtonToEachFeature (pageRegion){
         const features = pageRegion.element.querySelectorAll('.listview-item:not(.has-copybutton)')
         for (const featBlock of features) {
-            const formattedFeatText = new featText(featBlock).formatted()
+            const formattedInfo = new featInfo(featBlock).formatted()
 
             // Create and append a button
             const copyButton = createButton ('div', '.div-button-simple copy-button-main', '📋︎', function(event) { // 📋📋︎
                 event.stopPropagation() // prevent bubbling (keep feature text open)
-                copyToClipboard(formattedFeatText)
+                copyToClipboard(formattedInfo)
             })
 
             const topDiv = featBlock.querySelector('.top-div.listview-topdiv')
@@ -195,15 +191,15 @@ If no other selector works, then, it's the trait dialog
 
     function getActionIcon(imgUrl) {
         if (!imgUrl) {return}
+        const actionSymbols = {
+            reaction: '↩︎',
+            action_free: '◇',
+            action_single: '◆',
+            action_double: '◆◆'
+        }
         for (const action in actionSymbols){
             if (imgUrl.includes(action)) {return actionSymbols[action]}
         }
-    }
-    const actionSymbols = {
-        reaction: '↩︎',
-        action_free: '◇',
-        action_single: '◆',
-        action_double: '◆◆'
     }
 
     // define, assign & format the feature text (expected parameter: block containing title and detail elements)
@@ -213,7 +209,7 @@ If no other selector works, then, it's the trait dialog
         - get traits if they exist
         
     */
-    class featText {
+    class featInfo {
         constructor(featBlock) {
             // handle elements which don't exist (e.g. feat with no actions) with the optional chaining operator (?.)
             const topDiv = featBlock.querySelector('.top-div.listview-topdiv')
