@@ -10,57 +10,92 @@
 // @match        http*://www.fanfiction.net/s/*
 // @exclude      /^https?:\/\/archiveofourown\.org\/(?!(works|bookmarks|chapters)\/[0-9]).*/
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
-// @grant        none
+// @grant        GM_addStyle
+// @license      GPL-3.0-or-later
 // ==/UserScript==
 
 /* eslint-env jquery */
 
 this.$ = this.jQuery = jQuery.noConflict(true); // Prevent conflict with website JQuery libraries (on FFN specifically)
 
-// TO DOs
-//     [ ] check if jquery-ui is actually being used. Can I use something else? AO3 doesn't load it. HTML5 instead? // FIX
-//     [ ] ctrl+click on button to show dropdown (simpler: modal dialog w/ dropdown?) // MAYBE
-//     [ ] choose and remember format (reddit, access, other)
-//     [ ] when format changes, change button icon (copy / reddit)
-//     [ ] title text on button "Current format: [formatName]. Ctrl + click to change settings"
-//
-// !BUG:
+/* DONE: 
+    [x] replaced window.location.href with a variable
 
+ TO DOs
+     [x] replace long, repeated text in .append() .prepend()
+            - what does jQuery need? Could I create & append an object? (YES)
+     [ ] check if jquery-ui is actually being used. Can I use something else? AO3 doesn't load it. HTML5 instead? // FIX
+     [ ] ctrl+click on button to show dropdown (simpler: modal dialog w/ dropdown?) // MAYBE
+     [ ] choose and remember format (reddit, access, other)
+     [ ] when format changes, change button icon (copy / reddit)
+     [ ] title text on button "Current format: [formatName]. Ctrl + click to change settings"
+     [ ] optionally (config setting), copy first n sentences of story if no summary exists
+
+// !BUG:
+----------------------------------------------------------------------------------------------------------------------
+*/
 
 (function() {
     'use strict';
     let story
-
+    const currentURL = window.location.href
+    const copyTo = {
+        access: {
+            class: 'copy-for-AccessDB',
+            icon: '&#128203;'
+        },
+        reddit: {
+            class: 'copy-for-Reddit',
+            icon: '<img src="https://www.reddit.com/favicon.ico">'
+        }
+    }
+    const buttonType = {
+        AO3: {
+            el: 'li',
+            class: 'AO3-copy',
+            nestedEl: 'a'
+        },
+        FFNtop: {
+            el: 'button',
+            class: 'btn pull-right'
+        },
+        FFNbottom: {
+            el: 'button',
+            class: 'btn'
+        }
+    }
+    
     // set variables for work page or bookmark
-    if (window.location.href.match(/archiveofourown\.org\/(works|chapters)/i)) {
+    if (currentURL.match(/archiveofourown\.org\/(works|chapters)/i)) {
 
         // End script if we're not on the first chapter, as there's no summary. (Perhaps allow user to go to first chapter, then copy?)
         if (jQuery('.chapter.previous').length) {return;}
 
         story = {
             Title: $('h2.title').text().trim(),
-            Link: 'https://archiveofourown.org' + $('.mark a').attr('href').replace('/mark_for_later',''), //get work url from Mark for Later button (even when on a deprecated "chapters/..." url). NOTE: Share button is hidden in private works!
+            Link: 'https://archiveofourown.org' + $('.mark a').attr('href').replace('/mark_for_later',''), // get work url from Mark for Later button (even when on a deprecated "chapters/..." url). NOTE: Share button is hidden in private works!
             Author: $('h3.byline.heading').text().trim(),
-            Summary: nz($('div.preface .summary .userstuff').html()).trim(), //if there is no summary, $(...).html() will return UNDEFINED. Return null string instead
+            Summary: nz($('div.preface .summary .userstuff').html()).trim(), // if there is no summary, $(...).html() will return UNDEFINED. Return null string instead // TODO use nullish operator?
             Wordcount: $('dd.words').text().trim(),
-            IsComplete: isAO3FicComplete($('dd.chapters').text().trim()), //return 'y'/'n'
+            IsComplete: isAO3FicComplete($('dd.chapters').text().trim()), // return 'y'/'n'
             SeriesName: $('dd.series .position a:eq(0)').text().trim(),
             SeriesPosition: getAO3SeriesPos($('dd.series .position:eq(0)').text().trim())
         }
 
         if(typeof story.Summary === "undefined") {console.log('no summary')};
-        console.log($('dd.series .position a:eq(0)').text())
 
         // Add copy buttons at top and bottom of page
-        jQuery('ul.work').append('<li class="copy_for_AccessDB" onmouseover="" style="cursor: pointer;"><a>&#128203;</a></li>');
-        jQuery('.feedback ul.actions:eq(0)').prepend('<li class="copy_for_AccessDB" onmouseover="" style="cursor: pointer;"><a>&#128203;</a></li>');
+        jQuery('ul.work').append(
+            new copyBtn(buttonType.AO3, copyTo.access),
+            new copyBtn(buttonType.AO3, copyTo.reddit)
+        );
+        jQuery('.feedback ul.actions:eq(0)').prepend(
+            new copyBtn(buttonType.AO3, copyTo.access),
+            new copyBtn(buttonType.AO3, copyTo.reddit)
+        );
+        
 
-        // Add reddit copy buttons
-        jQuery('ul.work').append('<li class="copy_for_Reddit" onmouseover="" style="cursor: pointer;"><a><img src="https://www.reddit.com/favicon.ico" height="18"></a></li>');
-        jQuery('.feedback ul.actions:eq(0)').prepend('<li class="copy_for_Reddit" onmouseover="" style="cursor: pointer;"><a><img src="https://www.reddit.com/favicon.ico" height="18"></a></li>');
-
-
-    } else if (window.location.href.match(/archiveofourown\.org\/bookmarks/i)) {
+    } else if (currentURL.match(/archiveofourown\.org\/bookmarks/i)) {
         story = {
             Title: $('div.header h4.heading a').first().text().trim(),
             Link: 'https://archiveofourown.org' + $('div.header h4.heading a').first().attr('href'),
@@ -72,14 +107,14 @@ this.$ = this.jQuery = jQuery.noConflict(true); // Prevent conflict with website
             SeriesPosition: getAO3SeriesPos($('ul.series li strong').text().trim())
         }
 
-        // Add copy button
-        jQuery('div.own.user.module.group ul.actions').append('<li class="copy_for_AccessDB" onmouseover="" style="cursor: pointer;"><a>&#128203;</a></li>');
+        // Add copy buttons
+        jQuery('div.own.user.module.group ul.actions').append(
+            new copyBtn(buttonType.AO3, copyTo.access),
+            new copyBtn(buttonType.AO3, copyTo.reddit)
+        );
 
-        // Add reddit copy buttons
-        jQuery('div.own.user.module.group ul.actions').append('<li class="copy_for_Reddit" onmouseover="" style="cursor: pointer;"><a><img src="https://www.reddit.com/favicon.ico" height="18"></a></li>');
 
-
-    } else if (window.location.href.match(/archiveofourown\.org\/series/i)) {
+    } else if (currentURL.match(/archiveofourown\.org\/series/i)) {
         const series = {
             Title: '',
             SeriesLink: '',
@@ -106,29 +141,29 @@ this.$ = this.jQuery = jQuery.noConflict(true); // Prevent conflict with website
             //     console.log
             //     }
             // }
-
-
         }); */
 
-        } else if (window.location.href.match(/fanfiction\.net\/s\//i)) {
+        } else if (currentURL.match(/fanfiction\.net\/s\//i)) {
             story = {
                 Title: $('#profile_top b.xcontrast_txt').text(),
-                Link: window.location.href,
+                Link: currentURL,
                 Author: $('#profile_top a.xcontrast_txt[href^="/u/"]').text(),
                 Summary: $('#profile_top div.xcontrast_txt').text(),
-                // Wordcount and status are mushed together in one string (thanks, FFNet). Extract & clean with regex
-                Wordcount: $('#profile_top span.xgray').text()
-                .replace(/.*(Words: )([,\d]+).*/i, "$2"),
+                Wordcount: $('#profile_top span.xgray').text() // Wordcount and status are mushed together in one string (thanks, FFNet). 
+                    .replace(/.*(Words: )([,\d]+).*/i, "$2"), //  Extract & clean with regex
                 IsComplete: /Status\: Complete/.test($('#profile_top span.xgray').text()) //return boolean
             }
 
             // Add copy buttons at top and bottom of page (after "favourite"). [https://api.jquery.com/after/]
-            jQuery('div#profile_top').prepend('<button class="btn pull-right copy_for_AccessDB" type="button">&#128203;</button>');
-            jQuery('div.lc td').first().append('<button class="btn copy_for_AccessDB" type="button">&#128203;</button>');
-
-            // Add reddit copy buttons
-            jQuery('div#profile_top').prepend('<button class="btn pull-right copy_for_Reddit" type="button"><img src="https://www.reddit.com/favicon.ico" height="18"></button>');
-            jQuery('div.lc td').first().append('<button class="btn copy_for_Reddit" type="button"><img src="https://www.reddit.com/favicon.ico" height="18"></button>');
+            // MAYBE - whitespace? CSS padding?
+            jQuery('div#profile_top').prepend(
+                new copyBtn(buttonType.FFNtop, copyTo.access),
+                new copyBtn(buttonType.FFNtop, copyTo.reddit)
+            );
+            jQuery('div.lc td').first().append(
+                new copyBtn(buttonType.FFNbottom, copyTo.access),
+                new copyBtn(buttonType.FFNbottom, copyTo.reddit)
+            );
         };
 
     // A little cleaning (AO3 only!)
@@ -143,17 +178,15 @@ this.$ = this.jQuery = jQuery.noConflict(true); // Prevent conflict with website
     story.Link = story.Link.replace(/\?.+/,"")
 
     // Copy story data to Access (format: "title=sometitle; author=someauthor; ...")
-    jQuery('.copy_for_AccessDB').click(function() {
-        let storyData
-        storyData = propertiesAndValues(story, "=", "; ")
+    jQuery('.copy-for-AccessDB').click(function() {
+        let storyData = propertiesAndValues(story, "=", "; ")
         //        alert(storyData); //                              uncomment for popup summary
         copyToClipboard(storyData);
-        tempAlert('Copied',1500)
-
+        tempAlert('Copied for DB', 1500)
     });
 
     // Copy story data to Reddit (format: markdown)
-    jQuery('.copy_for_Reddit').click(function() {
+    jQuery('.copy-for-Reddit').click(function() {
         story.Summary = story.Summary
             .replace(/<\/p><p>/gi,"\n>\n>") //     html to markdown
             .replace(/<\/?p>/gi,"")
@@ -162,32 +195,65 @@ this.$ = this.jQuery = jQuery.noConflict(true); // Prevent conflict with website
             .replace(/<(\/)?b>/gi,"**")
         copyToClipboard('[*' + story.Title + '*](' + story.Link + '), by **' + story.Author + '** (' + story.Wordcount + ' words)\n\n' +
                         '>' + story.Summary + '\n\n')
-        tempAlert('Copied to markdown',1500)
+        tempAlert('Copied to markdown', 1500)
     })
 
     // FORMATS
-    let formattedOutput
+    let formattedOutput // TODO functino!!!!!
     switch($('#formatSelector').val()) {
         case 'Access DB':
             formattedOutput = [story.Title, story.Link, story.Author, story.Summary, story.Wordcount].join('||')
             break;
         case 'Markdown':
-            formattedOutput = '[*' + story.Title + '*](' + story.Link + '), by **' + story.Author + '** (' + story.Wordcount + ' words)\n\n' +
-                '>' + story.Summary + '\n\n';
+            formattedOutput = `[*${story.Title}*](${story.Link}), by **${story.Author}** (${story.Wordcount} words)\n\n` +
+                `>${story.Summary}\n\n`;
             break;
     }
 
     // Ctrl+click functionality [https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/ctrlKey]
-    let log = document.querySelector('.copy_for_AccessDB');
+    let log = document.querySelector('.copy-for-AccessDB');
     document.addEventListener('click', logKey);
 
     function logKey(e) {
-        //log.textContent = `The ctrl key is pressed: ${e.ctrlKey}`; //Uncomment to test if the function works: should change the text of the buttons with class .copy_for_AccessDB
+        //log.textContent = `The ctrl key is pressed: ${e.ctrlKey}`; //Uncomment to test if the function works: should change the text of the buttons with class .copy-for-AccessDB
 
         //open settings dialog
     }
 
-    // FUNCTIONS -----------------------------------------------------------------------------
+// FUNCTIONS -----------------------------------------------------------------------------
+
+    //FFN.classBottom.ACCDB
+    class copyBtn {
+        constructor(siteButton, copyFormat) {
+            const btn = document.createElement(siteButton.el)
+            btn.className = siteButton.class + ' ' + copyFormat.class
+            let innerNode = btn
+            if(siteButton.nestedEl) {
+                innerNode = document.createElement(siteButton.nestedEl)
+                btn.append(innerNode)
+            }
+            innerNode.innerHTML = copyFormat.icon
+            return btn
+        }
+    }
+    function createCopyButtons (siteButton) { // TODO : use this to add all format buttons? (Only if I decide not to use whitespace in FFN... maybe add a separator method?)
+        for (const format of copyTo.values) {
+            new copyBtn(siteButton, format)
+        }
+        // TODO : how to return both, comma-separated? It's probably an array...
+    }
+
+    function newBtn (siteButton, copyFormat) { // TODO : decide : class, or this function?
+        const btn = document.createElement(siteButton.el)
+            btn.className = siteButton.class + ' ' + copyFormat.class
+            let innerNode = btn
+            if(siteButton.nestedEl) {
+                innerNode = document.createElement(siteButton.nestedEl)
+                btn.append(innerNode)
+            }
+            innerNode.innerHTML = copyFormat.icon
+            return btn
+    }
 
     function nz(myVariable) {
         if (typeof myVariable === 'undefined') {
@@ -195,7 +261,7 @@ this.$ = this.jQuery = jQuery.noConflict(true); // Prevent conflict with website
         } else { return myVariable }
     }
 
-    function propertiesAndValues(storyObj, assignChar, separator) {
+    function propertiesAndValues(storyObj, assignChar, separator) { // TODO: can I use the "entries" property here instead?
         return Object
             .keys(storyObj)
             .map(function(k) {return k + assignChar + storyObj[k] }).join(separator);
@@ -248,5 +314,15 @@ this.$ = this.jQuery = jQuery.noConflict(true); // Prevent conflict with website
         },duration);
         document.body.appendChild(elem);
     }
+
+GM_addStyle ( `
+    .AO3-copy {
+        cursor: pointer;
+    }
+    .FFN-copy img {
+        // set image height dynamically
+        height:'18'; //17 is probably the one
+    }
+`)
 
 })();
