@@ -5,6 +5,7 @@
 * remove unnecessary JQuery imports (page already has JQuery)
 * ~~`var`~~; `let` → `const` (where possible)
 * simplify nesting with early exits
+* arrow functions `() => {}`
 * learn promises > simplify
 * store functions in objects?
 * magic numbers / magic strings
@@ -18,6 +19,19 @@
 * userscript to simple extension?
 
 # The DOM
+## Manipulation
+
+* `Node`**`.textContent`:** text of *all* elements, including `<style>` and hidden ones  
+`Element`**`.innerText`:** only human-readable text (but triggers **reflow** - expensive)
+
+* ⚠ Setting `.textContent` removes all of the node's children and replaces them with a single text node with the given string value. ⚠
+
+```html
+<p>He could think in <em>italics</em>. Such people need watching.<p>
+<!--becomes-->
+<p>He could think in italics. Such people need watching.<p>
+```
+
 ## NodeList
 * Loop with **`for...of`** or `.forEach` (slower), never with for...in
 ## Looping through
