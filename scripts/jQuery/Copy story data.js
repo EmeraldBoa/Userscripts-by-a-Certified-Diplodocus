@@ -24,13 +24,14 @@
         [x] semicolons
     [x] check if jquery-ui is actually being used. Can I use something else? AO3 doesn't load it. HTML5 instead?
     [x] fix regex for HTML and md
-    [ ] html5 animated alert (fade effect); style nicer borders
+    [x] html5 animated alert (fade effect); style nicer borders
 
  MAYBEs
     [ ] ctrl+click on button to show dropdown (simpler: modal dialog w/ dropdown?)
     [ ] choose and remember format (reddit, access, other)
     [ ] title text on button "Copy story info to [formatName] format. Ctrl + click to change settings"
     [ ] optionally (config setting), copy first n sentences of story if no summary exists
+    [ ] vanilla js?
 
 CHECKLIST
     [x] let > const
@@ -65,10 +66,12 @@ CHECKLIST
         access: {
             class: 'copy-for-AccessDB',
             icon: '&#128203;',
+            message: 'Copied for DB',
         },
         reddit: {
             class: 'copy-for-Reddit',
             icon: '<img src="https://www.reddit.com/favicon.ico">',
+            message: 'Copied as markdown',
         },
     }
     const buttonType = {
@@ -119,7 +122,6 @@ CHECKLIST
             SeriesPosition: getAO3SeriesPos(meta.find('dd.series .position:first').text().trim()),
         }
         cleanSummaryHTML()
-        if (typeof story.Summary === 'undefined') { console.log('no summary') }; // TODO : note in alert
 
         // Add copy buttons at top and bottom of page
         $('ul.work').append(makeCopyButtons(buttonType.AO3))
@@ -157,13 +159,13 @@ CHECKLIST
             Link: currentURL,
             Author: ffnInfo.find('a.xcontrast_txt[href^="/u/"]').text(),
             Summary: ffnInfo.find('div.xcontrast_txt').text(),
-            Wordcount: details.replace(/Words: ([,\d]+)/i, '$1'), //    Extract & clean with regex
+            Wordcount: details.replace(/.*Words: ([,\d]+).*/i, '$1'), //    Extract & clean with regex
             IsComplete: /Status: Complete/.test(details), //            return boolean
         }
 
         // Add copy buttons at top and bottom of page (after "favourite")
         $('div#profile_top').prepend(
-            makeCopyButtons(buttonType.FFNtop).reverse // reverse order as they are right-aligned
+            makeCopyButtons(buttonType.FFNtop).reverse() // reverse order as they are right-aligned
         )
         $('div.lc td').first().append(
             makeCopyButtons(buttonType.FFNbottom)
@@ -174,6 +176,7 @@ CHECKLIST
     // CAREFUL: this can break links from other domains (e.g. whofic stories have viewstory?sid=###)
     story.Link = story.Link.replace(/\?.+/, '') // TODO convert to method?
     story.Wordcount = story.Wordcount.replace(/,/gi, '') //                 - remove any decimal commas in wordcount
+    if (typeof story.Summary === 'undefined') { console.log('no summary') }; // TODO : note in alert
 
     // FORMATS // TODO : convert to a class / constructor function so I can place it at the start of the script (currently declared at initialisation)
     const formattedOutput = {
@@ -188,14 +191,14 @@ CHECKLIST
 
     // Copy story data to Access (format: "title=sometitle; author=someauthor; ...")
     $('.copy-for-AccessDB').click(function () {
-        copyToClipboard(formattedOutput.AccessDB)
-        briefAlert('Copied for DB', 1500) // TODO only alert if copy succeeds
+        const msg = copyToClipboard(formattedOutput.AccessDB) && 'Copied for DB'
+        timedPopover(msg, 1500)
     })
 
     // Copy story data to Reddit (format: markdown)
     $('.copy-for-Reddit').click(function () {
-        copyToClipboard(formattedOutput.Markdown)
-        briefAlert('Copied to markdown', 1500)
+        const msg = copyToClipboard(formattedOutput.Markdown) && 'Copied as markdown'
+        timedPopover(msg, 1500)
     })
 
     // CLEANUP FUNCTIONS -----------------------------------------------------------------------------// TODO better function names
@@ -227,7 +230,7 @@ CHECKLIST
         return url
     }
 
-    // FIXME: regex will BREAK html like <p>this text with <em>emphasis <br>across</em> two lines</p> 
+    // FIXME: regex will BREAK html like <p>this text with <em>emphasis <br>across</em> two lines</p>
     function cleanSummaryHTML() {
         story.Summary = story.Summary
             .replaceAll(/<([/]?)b>/gi, '<$1strong>') //             - b to strong
@@ -324,26 +327,56 @@ CHECKLIST
         ).join(separator)
     }
 
-    async function copyToClipboard(text) {
+    async function copyToClipboard(text) {  // TODO display err if copy fails (test why it would)
         try {
             await navigator.clipboard.writeText(text)
             return true // TODO check behaviour with async functions
         } catch (error) {
-            console.error('failed to copy to clipboard. text=', text) // TODO remove try/catch once development is finished
+            const errMsg = '⚠ Couldn\'t copy to clipboard. Error = ' + error
+            console.error(errMsg, 'text = ' + text, error)
+            return new Error(errMsg + '\nSee console for details.')
         }
     }
 
-    function briefAlert(msg, duration) {
-        const el = document.createElement('div')
-        el.textContent = msg
-        el.id = 'copy-alert'
-        setTimeout(function () {
-            el.parentNode.removeChild(el)
-        }, duration)
-        document.body.appendChild(el)
+    function createElement(type, className) {
+        const el = document.createElement(type)
+        el.classList = className
+        document.body.append(el)
+        return el
     }
 
+    const confMsg = createElement('div', 'copy-alert-anim') // MAYBE later: popover?
+    function timedPopover(msg, duration) {
+        confMsg.textContent = msg
+        confMsg.classList.add('show-alert')
+        setTimeout(function () {
+            confMsg.classList.remove('show-alert')
+        }, duration)
+    }
+
+    // eslint-disable-next-line no-undef
     GM_addStyle (`
+    .copy-alert-anim {
+        position: fixed; /* relative to browser window */
+        inset:0;
+        inset: 0;
+        width: fit-content;
+        height: fit-content;
+        margin: auto;
+        font-size: 200%;
+        padding: 10px 20px; /* top/bottom left/right */
+        background-color: blanchedalmond;
+        border-radius: 0.2em;
+        box-shadow: 1px 1px 5px #aaa;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 250ms ease-in, visibility 0ms ease-in 250ms;
+      }
+    .show-alert {  
+        visibility: visible;
+        opacity: 100%;
+        transition-delay: 0ms;
+    }
     .AO3-copy {
         cursor: pointer;
     }
@@ -355,14 +388,6 @@ CHECKLIST
     }
     .FFN-copy img {
         height: 17px;
-    }
-    #copy-alert {
-        position: fixed; /* relative to browser window */
-        top: 50%;
-        left: 45%;
-        background-color: blanchedalmond;
-        font-size: 200%;
-        padding: 10px 20px; /* top/bottom left/right */
     }
 `)
     // TODO: set img height dynamically
@@ -386,7 +411,7 @@ CHECKLIST
  *                          Y               Y               Y
  * #bookmark-form form action="/works/####/bookmarks"
  *                                          Y               Y
- * 
+ *
  * DOES NOT WORK (still uses /chapters/):
- * 
+ *
  * */
