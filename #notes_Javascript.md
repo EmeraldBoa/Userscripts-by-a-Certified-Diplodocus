@@ -10,6 +10,7 @@
 * store functions in objects?
 * magic numbers / magic strings
 * eslint stylistic (regular formatting)
+* css
 
 # Would like to learn
 
@@ -58,3 +59,35 @@
 divObserver = new MutationObserver(addButtons(myDiv)) // error
 divObserver = new MutationObserver(() => addButtons(myDiv)) // works!
 ```
+
+## Arrow functions () => {}
+
+* Don't have their own `this`, `arguments` or `super`
+* **Not** for constructors or methods
+
+&nbsp;
+
+# Objects
+
+Initialise with `myObj = { key1: 'value1', key2: 'value2', method() {} }`
+
+method vs **`get`** function: 
+```js
+myObj = {
+      dividendo: 54,
+      divisor: 5,
+      cociente() { return Math.trunc(this.dividendo / this.divisor) },
+      get resto() { return this.dividendo % this.divisor },
+}
+console.log(
+      myObj.cociente(), //    '10'
+      myObj.cociente, //      'return Math.trunc(this.dividendo / this...'
+      myObj.resto, //         '4'
+
+      Object.keys(myObj) //   ['dividendo', 'divisor', 'cociente', 'resto']
+      Object.values(myObj) // [54, 5, 'cociente() { return Math... }', 4]
+)
+```
+Note how methods return 
+
+[Querying & traversing object properties (MDN)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Enumerability_and_ownership_of_properties)

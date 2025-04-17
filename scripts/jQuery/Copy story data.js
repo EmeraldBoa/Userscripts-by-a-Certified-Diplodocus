@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         📋 Copy story data
 // @namespace    http://tampermonkey.net/
-// @version      1.2.1
+// @version      1.2.2
 // @description  copies story data from AO3/FFN for pasting into MS Access or markdown (reddit)
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/*
@@ -30,7 +30,8 @@
     [ ] ctrl+click on button to show dropdown (simpler: modal dialog w/ dropdown?)
     [ ] choose and remember format (reddit, access, other)
     [ ] title text on button "Copy story info to [formatName] format. Ctrl + click to change settings"
-    [ ] optionally (config setting), copy first n sentences of story if no summary exists
+        [ ] OR generic tooltips (good if I share the script)
+    [ ] optional setting: copy first n sentences of story if no summary exists. Alert of no-summary in popup? What purpose would it serve?
     [ ] vanilla js?
 
 CHECKLIST
@@ -44,11 +45,21 @@ CHECKLIST
 
 (function ($) {
     'use strict'
+    const parser = new DOMParser()
+    const errPrefix = '[Copy Story Data - userscript] \n⚠ Error: '
 
     // Data formatting
-    let story = { Title: '', Link: '', Author: '', Summary: '', Wordcount: '', IsComplete: '', SeriesName: '', SeriesPosition: '' }
-    Object.seal(story) // properties may be changed but not added, deleted or configured // FIXME?
-    const parser = new DOMParser()
+    const story = { Title: '', Link: '', Author: '', Summary: '', Wordcount: '', IsComplete: '', SeriesName: '', SeriesPosition: '' }
+    Object.seal(story) // properties may be changed but not added, deleted or configured
+    const formattedOutput = {
+        get AccessDB() {
+            return propertiesAndValues(formatForAccess(story), '=', '; ')
+        },
+        get Markdown() {
+            return `[*${story.Title}*](${story.Link}), by **${story.Author}** (${story.Wordcount} words)\n\n`
+                + summaryToMarkdown(story.Summary)
+        },
+    }
 
     // Website & button settings
     const currentURL = window.location.href
@@ -60,18 +71,6 @@ CHECKLIST
         },
         FFN: {
             work: /fanfiction\.net\/s\//i,
-        },
-    }
-    const copyTo = {
-        access: {
-            class: 'copy-for-AccessDB',
-            icon: '&#128203;',
-            message: 'Copied for DB',
-        },
-        reddit: {
-            class: 'copy-for-Reddit',
-            icon: '<img src="https://www.reddit.com/favicon.ico">',
-            message: 'Copied as markdown',
         },
     }
     const buttonType = {
@@ -87,6 +86,18 @@ CHECKLIST
         FFNbottom: {
             el: 'button',
             class: 'FFN-copy btn',
+        },
+    }
+    const copyTo = {
+        access: {
+            class: 'copy-for-AccessDB',
+            icon: '&#128203;',
+            message: 'Copied for DB',
+        },
+        reddit: {
+            class: 'copy-for-Reddit',
+            icon: '<img src="https://www.reddit.com/favicon.ico">',
+            message: 'Copied as markdown',
         },
     }
     class copyBtn {
@@ -111,16 +122,16 @@ CHECKLIST
         const preface = $('.preface:first')
         const meta = $('.meta')
 
-        story = {
+        Object.assign(story, {
             Title: preface.find('.title').text().trim(),
             Link: getValidAO3Link(),
             Author: preface.find('.byline').text().trim(),
-            Summary: preface.find('.summary .userstuff')?.html().trim(), // handle empty summaries
+            Summary: preface.find('.summary .userstuff').html()?.trim() || '', // handle empty summaries (html returns undefined)
             Wordcount: meta.find('dd.words').text().trim(),
             IsComplete: isAO3FicComplete(meta.find('dd.chapters').text().trim()), // return boolean
             SeriesName: meta.find('dd.series .position a').text().trim(),
             SeriesPosition: getAO3SeriesPos(meta.find('dd.series .position:first').text().trim()),
-        }
+        })
         cleanSummaryHTML()
 
         // Add copy buttons at top and bottom of page
@@ -130,16 +141,16 @@ CHECKLIST
 
     } else if ((URLregex.AO3.bookmark).test(currentURL)) {
         const header = $('.header h4.heading')
-        story = {
+        Object.assign(story, {
             Title: header.find('a:first').text().trim(),
             Link: 'https://archiveofourown.org' + header.find('a:first').attr('href'),
             Author: header.find('a[rel="author"]').text().trim(),
-            Summary: $('.summary')?.html().trim(),
+            Summary: $('.summary').html()?.trim() || '', // handle empty summaries
             Wordcount: $('dd.words').text().trim(),
             IsComplete: isAO3FicComplete($('dd.chapters').text().trim()), // return boolean
             SeriesName: $('.series a').text().trim(),
             SeriesPosition: getAO3SeriesPos($('.series').text().trim()),
-        }
+        })
         cleanSummaryHTML()
 
         // Add copy buttons
@@ -153,15 +164,15 @@ CHECKLIST
 
     } else if ((URLregex.FFN.work).test(currentURL)) {
         const ffnInfo = $('#profile_top')
-        const details = ffnInfo.find('span.xgray').text() //   Wordcount and status are mushed together in one string (thanks, FFNet).
-        story = {
+        const details = ffnInfo.find('span.xgray').text() //   Wordcount and status buried inside a string (thanks, FFNet).
+        Object.assign(story, {
             Title: ffnInfo.find('b.xcontrast_txt').text(),
             Link: currentURL,
             Author: ffnInfo.find('a.xcontrast_txt[href^="/u/"]').text(),
             Summary: ffnInfo.find('div.xcontrast_txt').text(),
             Wordcount: details.replace(/.*Words: ([,\d]+).*/i, '$1'), //    Extract & clean with regex
-            IsComplete: /Status: Complete/.test(details), //            return boolean
-        }
+            IsComplete: /Status: Complete/.test(details), //                return boolean
+        })
 
         // Add copy buttons at top and bottom of page (after "favourite")
         $('div#profile_top').prepend(
@@ -172,36 +183,27 @@ CHECKLIST
         )
     };
 
-    // Clean up AO3 and FFN links by deleting text after "?" (links to comments, cloudflare, etc)
-    // CAREFUL: this can break links from other domains (e.g. whofic stories have viewstory?sid=###)
-    story.Link = story.Link.replace(/\?.+/, '') // TODO convert to method?
-    story.Wordcount = story.Wordcount.replace(/,/gi, '') //                 - remove any decimal commas in wordcount
-    if (typeof story.Summary === 'undefined') { console.log('no summary') }; // TODO : note in alert
+    story.Link = story.Link.replace(/\?.+/, '')
+    story.Wordcount = story.Wordcount.replace(/,/gi, '')
+    /**
+    *       1. Delete link text after "?" (links to comments, cloudflare, etc).
+    *       CAREFUL: this can break links from other domains (e.g. whofic stories have viewstory?sid=###)
+    *       2. Remove decimal commas from wordcount
+    */
 
-    // FORMATS // TODO : convert to a class / constructor function so I can place it at the start of the script (currently declared at initialisation)
-    const formattedOutput = {
-        get AccessDB() {
-            return propertiesAndValues(formatForAccess(story), '=', '; ')
-        },
-        get Markdown() {
-            return `[*${story.Title}*](${story.Link}), by **${story.Author}** (${story.Wordcount} words)\n\n`
-                + summaryToMarkdown(story.Summary)
-        },
-    }
-
-    // Copy story data to Access (format: "title=sometitle; author=someauthor; ...")
+    // Copy story data to Access (format: "title=sometitle; author=someauthor; ..."), alert on success
     $('.copy-for-AccessDB').click(function () {
         const msg = copyToClipboard(formattedOutput.AccessDB) && 'Copied for DB'
         timedPopover(msg, 1500)
     })
 
-    // Copy story data to Reddit (format: markdown)
+    // Copy story data to Reddit (format: markdown), alert on success
     $('.copy-for-Reddit').click(function () {
         const msg = copyToClipboard(formattedOutput.Markdown) && 'Copied as markdown'
         timedPopover(msg, 1500)
     })
 
-    // CLEANUP FUNCTIONS -----------------------------------------------------------------------------// TODO better function names
+    // CLEANUP FUNCTIONS -----------------------------------------------------------------------------
 
     // AO3 chapter format is "3/?", "31/31", "3/10"...
     // input: "n/m" where n is a number. output: boolean
@@ -218,20 +220,21 @@ CHECKLIST
     }
 
     // Get valid link from AO3 works page, avoiding deprecated ".org/chapters/..."
-    // FIXME: testing. Throw error if the kudos method fails, so I know to add a secondary option
     function getValidAO3Link() {
-        const IDfromKudos = document.querySelector('#kudo_commentable_id').value
+        const IDfromKudos = $('#kudo_commentable_id').val()
         let url = IDfromKudos && 'https://archiveofourown.org/works/' + IDfromKudos
-        if (!url) {
-            alert('⚠ CopySD error ⚠ : \nCould not get workID from kudos button.\nUsing currentURL instead.')
-            url = currentURL
+
+        if (!url) { // FIXME: (currently testing) If the kudos method fails, ALERT so I know I need to add a secondary option
+            const errMsg = errPrefix + 'Could not get workID from kudos button.\nUsing currentURL instead.'
+            console.error(errMsg)
+            alert(errMsg)
         }
-        // url ??= currentURL // default value // TODO uncomment after testing finishes
-        return url
+        return url || currentURL
     }
 
     // FIXME: regex will BREAK html like <p>this text with <em>emphasis <br>across</em> two lines</p>
     function cleanSummaryHTML() {
+        if (!story.Summary.includes('<')) { return }
         story.Summary = story.Summary
             .replaceAll(/<([/]?)b>/gi, '<$1strong>') //             - b to strong
             .replaceAll(/<([/]?)i>/gi, '<$1em>') //                 - i to em
@@ -239,12 +242,13 @@ CHECKLIST
             .replaceAll(/<br\s*[/]?>/gi, '</p><p>') //              - br to p // HACK: keep an eye on this one
             .replaceAll(/(<p>){2,}|(<[/]p>){2,}/gi, '$1$2') //      - discard wrappers (<p><p>, </p></p>)
             .replaceAll(/\s+(<\/p>)|(<p>)\s+/gi, '$1$2') //         - no white space around paragraphs (do I need this?)
-            .replaceAll(/^<p><\/p>|<p><\/p>$/gi, '') //             - delete blank start/end paragraphs
             .replaceAll(/(<p><\/p>){2,}/gi, '<p></p>') //           - max one empty paragraph
+            .replaceAll(/^<p><\/p>|<p><\/p>$/gi, '') //             - delete blank start/end paragraphs
     }
 
     // apparently this is illegal he c̶̮omes H̸̡̪̯ͨ͊̽̅̾̎Ȩ̬̩̾͛ͪ̈́̀́͘ ̶̧̨̱̹̭̯ͧ̾ͬC̷̙̲̝͖ͭ̏ͥͮ͟Oͮ͏̮̪̝͍M̲̖͊̒ͪͩͬ̚̚͜Ȇ̴̟̟͙̞ͩ͌͝S̨̥̫͎̭ͯ̿̔̀ͅ. nevertheless (AO3 summaries are simple, as is reddit's markdown):
     function summaryToMarkdown(html) {
+        if (!html.includes('<')) { return '> ' + html } // check for presence of tags
         const rx = {
             markdownCharsToEscape: RegExp(/[*_#^]|(?:<p>)\s*>/g), // exclude > character after a p tag (?:abc) = non-capturing group // HACK
             parabreak: RegExp(/<\/p>(?!$)/gi),
@@ -254,8 +258,7 @@ CHECKLIST
             blockquote: RegExp(/<blockquote>/gi),
             otherTags: RegExp(/<[/]?[^>]+>/gi),
         }
-        if (!html.includes('<')) { return '> ' + html } // check for presence of tags
-        let markdown = blockquoteToMarkdown(html)
+        const markdown = blockquoteToMarkdown(html)
             .replaceAll(rx.markdownCharsToEscape, '\\$&')
             .replaceAll(rx.parabreak, '\n\n')
             .replaceAll(/[\n]{3,}/gi, '\n\n') // max two linebreaks.
@@ -268,24 +271,30 @@ CHECKLIST
 
     function blockquoteToMarkdown(html) {
         const bqArray = html.split(/<[/]?blockquote>/gi)
+        if (bqArray.length < 2) { return html }
         for (let i = 1; i < bqArray.length; i += 2) { // iterate through blockquoted text
             bqArray[i] = bqArray[i].replaceAll(/<p>/gi, '$&> ')
         }
         return bqArray.join('')
     }
 
+    // Create a 'story' object with an edited summary (for the database)
     function formatForAccess(storyObj) {
         const storyForAccess = structuredClone(storyObj)
-        let formattedSummary = blockquoteToItalics(storyForAccess.Summary)
-        formattedSummary = hangingIndents(formattedSummary)
-        formattedSummary = formattedSummary.replaceAll(/<([/]?)p>/gi, '<$1div>') // - p to div
-        storyForAccess.Summary = formattedSummary
+        if (storyForAccess.Summary) {
+            let formattedSummary = blockquoteToItalics(storyForAccess.Summary)
+            formattedSummary = hangingIndents(formattedSummary)
+            formattedSummary = formattedSummary.replaceAll(/<([/]?)p>/gi, '<$1div>') // p to div (Access default)
+            storyForAccess.Summary = formattedSummary
+        }
         return storyForAccess
     }
 
     // Invert the italics within a blockquote. Remove the blockquote tags and wrap in empty paragraphs. Return HTML string
     function blockquoteToItalics(html) { // MAYBE reformat this to use the parsed summary
         const bqArray = html.split(/<[/]?blockquote>/gi)
+        if (bqArray.length < 2) { return html }
+
         for (let i = 1; i < bqArray.length; i += 2) { // iterate through bqArray[1], [3], [5]... (blockquoted text)
             bqArray[i] = bqArray[i] //                      <em>,  </em>
                 .replaceAll(/(<[/]?)em>/gi, '$1/em>') //    </em>, <//em>
@@ -327,14 +336,14 @@ CHECKLIST
         ).join(separator)
     }
 
-    async function copyToClipboard(text) {  // TODO display err if copy fails (test why it would)
+    async function copyToClipboard(text) {
         try {
             await navigator.clipboard.writeText(text)
-            return true // TODO check behaviour with async functions
+            return true
         } catch (error) {
-            const errMsg = '⚠ Couldn\'t copy to clipboard. Error = ' + error
-            console.error(errMsg, 'text = ' + text, error)
-            return new Error(errMsg + '\nSee console for details.')
+            console.error(
+                errPrefix, '⚠ Couldn\'t copy to clipboard. Logged error:\n\n', error.message, `\n\ntext = "${text}"`
+            )
         }
     }
 
@@ -345,20 +354,19 @@ CHECKLIST
         return el
     }
 
-    const confMsg = createElement('div', 'copy-alert-anim') // MAYBE later: popover?
+    const copyAlert = createElement('div', 'copy-alert') // MAYBE later: popover?
     function timedPopover(msg, duration) {
-        confMsg.textContent = msg
-        confMsg.classList.add('show-alert')
+        copyAlert.textContent = msg
+        copyAlert.classList.add('show-alert')
         setTimeout(function () {
-            confMsg.classList.remove('show-alert')
+            copyAlert.classList.remove('show-alert')
         }, duration)
     }
 
     // eslint-disable-next-line no-undef
     GM_addStyle (`
-    .copy-alert-anim {
+    .copy-alert {
         position: fixed; /* relative to browser window */
-        inset:0;
         inset: 0;
         width: fit-content;
         height: fit-content;
@@ -367,7 +375,7 @@ CHECKLIST
         padding: 10px 20px; /* top/bottom left/right */
         background-color: blanchedalmond;
         border-radius: 0.2em;
-        box-shadow: 1px 1px 5px #aaa;
+        box-shadow: 1px 1px 5px #aaa; /* from AO3 div.wrapper */
         visibility: hidden;
         opacity: 0;
         transition: opacity 250ms ease-in, visibility 0ms ease-in 250ms;
@@ -379,39 +387,16 @@ CHECKLIST
     }
     .AO3-copy {
         cursor: pointer;
+        img {
+            height: 18px;
+        }
     }
     .FFN-copy {
         margin-left: 5px; /* instead of adding whitespace, as FFN does */
+        img {
+            height: 17px;
+        }
     }
-    .AO3-copy img {
-        height: 18px;
-    }
-    .FFN-copy img {
-        height: 17px;
-    }
-`)
-    // TODO: set img height dynamically
+    `)
 
 })(jQuery)
-
-/**
- * STORYID SOURCES FOR LINK (/works/#####)
- *                          logged out ok   single-chapter  multi-chapter
- * show_comments_link_top   Y               Y               N (chapterID)
- * entire-work              Y               N               Y
- * subscribe                N               Y               Y
- * .mark (for later)        N               Y               Y
- * share                    Y               Y               Y               (but not private)
- * download ul.expandable.secondary.hidden li a href="/downloads/####"
- *                          Y               Y               Y
- * dd.bookmarks             Y               Y               Y               (fails on works with no bookmarks)
- * .chapter.preface a href="works/####/chapters/..."
- *                          Y               Y               Y               (fails on works which hide the chapter header)
- * #kudo_commentable_id value="####"
- *                          Y               Y               Y
- * #bookmark-form form action="/works/####/bookmarks"
- *                                          Y               Y
- *
- * DOES NOT WORK (still uses /chapters/):
- *
- * */
