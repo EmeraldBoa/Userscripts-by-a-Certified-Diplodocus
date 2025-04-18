@@ -12,19 +12,9 @@
 // @license      GPL-3.0-or-later
 // ==/UserScript==
 
-/* eslint-env jquery */
-
-/* DONE:
-    [x] replaced window.location.href with a variable
-
+/*
  TO DOs
-    [x] replace long, repeated text in .append() .prepend()
-            - what does jQuery need? Could I create & append an object? (YES)
-    [x] eslint-stylize fixes
-        [x] semicolons
-    [x] check if jquery-ui is actually being used. Can I use something else? AO3 doesn't load it. HTML5 instead?
-    [x] fix regex for HTML and md
-    [x] html5 animated alert (fade effect); style nicer borders
+    [ ] vanilla js - test
 
  MAYBEs
     [ ] ctrl+click on button to show dropdown (simpler: modal dialog w/ dropdown?)
@@ -32,18 +22,17 @@
     [ ] title text on button "Copy story info to [formatName] format. Ctrl + click to change settings"
         [ ] OR generic tooltips (good if I share the script)
     [ ] optional setting: copy first n sentences of story if no summary exists. Alert of no-summary in popup? What purpose would it serve?
-    [ ] vanilla js?
 
 CHECKLIST
     [x] let > const
     [x] == > ===
     [ ] arrow functions () => {}
 
-// !BUG:
+!BUGS
 ----------------------------------------------------------------------------------------------------------------------
 */
 
-(function ($) {
+(function () {
     'use strict'
     const parser = new DOMParser()
     const errPrefix = '[Copy Story Data - userscript] \n⚠ Error: '
@@ -399,4 +388,4 @@ CHECKLIST
     }
     `)
 
-})(jQuery)
+})()
