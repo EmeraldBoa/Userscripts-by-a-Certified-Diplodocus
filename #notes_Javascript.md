@@ -18,6 +18,7 @@
 * classes
 * sodding "this"
 * userscript to simple extension?
+* abstract syntax trees (parsing purposes)
 
 # The DOM
 ## Manipulation

@@ -14,7 +14,8 @@
 
 /*
  TO DOs
-    [ ] vanilla js - test
+    [x] vanilla js - test
+    [ ] simpler selectors for button prepend/appends
 
  MAYBEs
     [ ] ctrl+click on button to show dropdown (simpler: modal dialog w/ dropdown?)
@@ -22,11 +23,12 @@
     [ ] title text on button "Copy story info to [formatName] format. Ctrl + click to change settings"
         [ ] OR generic tooltips (good if I share the script)
     [ ] optional setting: copy first n sentences of story if no summary exists. Alert of no-summary in popup? What purpose would it serve?
+    [ ] round up wordcount in Markdown (nearest 100, nearest 1000(k))
 
 CHECKLIST
     [x] let > const
     [x] == > ===
-    [ ] arrow functions () => {}
+    [x] arrow functions () => {}
 
 !BUGS
 ----------------------------------------------------------------------------------------------------------------------
@@ -34,21 +36,17 @@ CHECKLIST
 
 (function () {
     'use strict'
+    // alias document/element.querySelector, for readability
+    // const $ = (sel, par = document) => par.querySelector(sel) // TODO : check if this is safe/performant
+    const $ = document.querySelector.bind(document)
+    const $$ = document.querySelectorAll.bind(document)
+
     const parser = new DOMParser()
     const errPrefix = '[Copy Story Data - userscript] \n⚠ Error: '
 
     // Data formatting
     const story = { Title: '', Link: '', Author: '', Summary: '', Wordcount: '', IsComplete: '', SeriesName: '', SeriesPosition: '' }
     Object.seal(story) // properties may be changed but not added, deleted or configured
-    const formattedOutput = {
-        get AccessDB() {
-            return propertiesAndValues(formatForAccess(story), '=', '; ')
-        },
-        get Markdown() {
-            return `[*${story.Title}*](${story.Link}), by **${story.Author}** (${story.Wordcount} words)\n\n`
-                + summaryToMarkdown(story.Summary)
-        },
-    }
 
     // Website & button settings
     const currentURL = window.location.href
@@ -82,17 +80,28 @@ CHECKLIST
             class: 'copy-for-AccessDB',
             icon: '&#128203;',
             message: 'Copied for DB',
+            get format() {
+                return propertiesAndValues(formatForAccess(story), '=', '; ')
+            },
         },
         reddit: {
             class: 'copy-for-Reddit',
             icon: '<img src="https://www.reddit.com/favicon.ico">',
             message: 'Copied as markdown',
+            get format() {
+                return `[*${story.Title}*](${story.Link}), by **${story.Author}** (${story.Wordcount} words)\n\n`
+                    + summaryToMarkdown(story.Summary)
+            },
         },
     }
     class copyBtn {
         constructor(siteButton, copyFormat) {
             const btn = document.createElement(siteButton.el)
             btn.className = siteButton.class + ' ' + copyFormat.class
+            btn.addEventListener('click', () => { // TODO make static function
+                const msg = copyToClipboard(copyFormat.format) && copyFormat.message
+                timedPopover(msg, 1500)
+            })
             let innerNode = btn
             if (siteButton.nestedEl) {
                 innerNode = document.createElement(siteButton.nestedEl)
@@ -107,44 +116,44 @@ CHECKLIST
     if ((URLregex.AO3.work).test(currentURL)) {
 
         // End script if we're not on the first chapter, as there's no summary. (Perhaps allow user to go to first chapter, then copy?)
-        if ($('.chapter.previous').length) { return }
-        const preface = $('.preface:first')
+        if ($('.chapter.previous')) { return }
+        const preface = $('.preface')
         const meta = $('.meta')
 
         Object.assign(story, {
-            Title: preface.find('.title').text().trim(),
+            Title: preface.querySelector('.title').textContent,
             Link: getValidAO3Link(),
-            Author: preface.find('.byline').text().trim(),
-            Summary: preface.find('.summary .userstuff').html()?.trim() || '', // handle empty summaries (html returns undefined)
-            Wordcount: meta.find('dd.words').text().trim(),
-            IsComplete: isAO3FicComplete(meta.find('dd.chapters').text().trim()), // return boolean
-            SeriesName: meta.find('dd.series .position a').text().trim(),
-            SeriesPosition: getAO3SeriesPos(meta.find('dd.series .position:first').text().trim()),
+            Author: preface.querySelector('.byline').textContent,
+            Summary: preface.querySelector('.summary .userstuff')?.innerHTML || '', // handle empty summaries
+            Wordcount: meta.querySelector('dd.words').textContent,
+            IsComplete: isAO3FicComplete(meta.querySelector('dd.chapters').textContent), // return boolean
+            SeriesName: meta.querySelector('dd.series .position a')?.textContent || '',
+            SeriesPosition: getAO3SeriesPos(meta.querySelector('dd.series .position')?.textContent || ''),
         })
         cleanSummaryHTML()
 
         // Add copy buttons at top and bottom of page
-        $('ul.work').append(makeCopyButtons(buttonType.AO3))
-        $('.feedback ul.actions:eq(0)').prepend(makeCopyButtons(buttonType.AO3))
+        $('ul.work').append(...makeCopyButtons(buttonType.AO3))
+        $('.feedback ul.actions').prepend(...makeCopyButtons(buttonType.AO3))
 
 
     } else if ((URLregex.AO3.bookmark).test(currentURL)) {
         const header = $('.header h4.heading')
         Object.assign(story, {
-            Title: header.find('a:first').text().trim(),
-            Link: 'https://archiveofourown.org' + header.find('a:first').attr('href'),
-            Author: header.find('a[rel="author"]').text().trim(),
-            Summary: $('.summary').html()?.trim() || '', // handle empty summaries
-            Wordcount: $('dd.words').text().trim(),
-            IsComplete: isAO3FicComplete($('dd.chapters').text().trim()), // return boolean
-            SeriesName: $('.series a').text().trim(),
-            SeriesPosition: getAO3SeriesPos($('.series').text().trim()),
+            Title: header.querySelector('a').textContent,
+            Link: 'https://archiveofourown.org' + header.querySelector('a').getAttribute('href'),
+            Author: header.querySelector('a[rel="author"]').textContent,
+            Summary: $('.summary')?.innerHTML || '', // handle empty summaries
+            Wordcount: $('dd.words').textContent,
+            IsComplete: isAO3FicComplete($('dd.chapters').textContent), // return boolean
+            SeriesName: $('.series a')?.textContent || '',
+            SeriesPosition: getAO3SeriesPos($('.series')?.textContent || ''),
         })
         cleanSummaryHTML()
 
         // Add copy buttons
-        $('div.own.user.module.group ul.actions').append(
-            makeCopyButtons(buttonType.AO3)
+        $('.own .actions').append(
+            ...makeCopyButtons(buttonType.AO3)
         )
 
 
@@ -153,50 +162,46 @@ CHECKLIST
 
     } else if ((URLregex.FFN.work).test(currentURL)) {
         const ffnInfo = $('#profile_top')
-        const details = ffnInfo.find('span.xgray').text() //   Wordcount and status buried inside a string (thanks, FFNet).
+        const details = ffnInfo.querySelector('span.xgray').textContent //   Wordcount and status buried inside a string (thanks, FFNet).
         Object.assign(story, {
-            Title: ffnInfo.find('b.xcontrast_txt').text(),
+            Title: ffnInfo.querySelector('b.xcontrast_txt').textContent,
             Link: currentURL,
-            Author: ffnInfo.find('a.xcontrast_txt[href^="/u/"]').text(),
-            Summary: ffnInfo.find('div.xcontrast_txt').text(),
+            Author: ffnInfo.querySelector('a.xcontrast_txt[href^="/u/"]').textContent,
+            Summary: ffnInfo.querySelector('div.xcontrast_txt').textContent,
             Wordcount: details.replace(/.*Words: ([,\d]+).*/i, '$1'), //    Extract & clean with regex
-            IsComplete: /Status: Complete/.test(details), //                return boolean
+            IsComplete: details.includes(`Status: Complete`), //            return boolean
         })
 
         // Add copy buttons at top and bottom of page (after "favourite")
-        $('div#profile_top').prepend(
-            makeCopyButtons(buttonType.FFNtop).reverse() // reverse order as they are right-aligned
+        ffnInfo.prepend(
+            ...makeCopyButtons(buttonType.FFNtop).reverse() // reverse order as they are right-aligned
         )
-        $('div.lc td').first().append(
-            makeCopyButtons(buttonType.FFNbottom)
+        $('#story_actions').parentElement.append(
+            ...makeCopyButtons(buttonType.FFNbottom)
         )
     };
 
-    story.Link = story.Link.replace(/\?.+/, '')
-    story.Wordcount = story.Wordcount.replace(/,/gi, '')
-    /**
-    *       1. Delete link text after "?" (links to comments, cloudflare, etc).
-    *       CAREFUL: this can break links from other domains (e.g. whofic stories have viewstory?sid=###)
-    *       2. Remove decimal commas from wordcount
-    */
-
-    // Copy story data to Access (format: "title=sometitle; author=someauthor; ..."), alert on success
-    $('.copy-for-AccessDB').click(function () {
-        const msg = copyToClipboard(formattedOutput.AccessDB) && 'Copied for DB'
-        timedPopover(msg, 1500)
-    })
-
-    // Copy story data to Reddit (format: markdown), alert on success
-    $('.copy-for-Reddit').click(function () {
-        const msg = copyToClipboard(formattedOutput.Markdown) && 'Copied as markdown'
-        timedPopover(msg, 1500)
-    })
+    trimAndCleanFields()
 
     // CLEANUP FUNCTIONS -----------------------------------------------------------------------------
+
+    function trimAndCleanFields() {
+        for (const [key, value] of Object.entries(story)) {
+            if (typeof value === 'string') { story[key] = value.trim() }
+        }
+        story.Link = story.Link.replace(/\?.+/, '')
+        story.Wordcount = story.Wordcount.replace(/,/gi, '')
+    /**
+    *   1. Delete link text after "?" (links to comments, cloudflare, etc).
+    *   CAREFUL: this can break links from other domains (e.g. whofic stories have viewstory?sid=###)
+    *   2. Remove decimal commas from wordcount
+    */
+    }
 
     // AO3 chapter format is "3/?", "31/31", "3/10"...
     // input: "n/m" where n is a number. output: boolean
     function isAO3FicComplete(ao3ChapterCount) {
+        ao3ChapterCount = ao3ChapterCount.trim()
         const chaptersWritten = ao3ChapterCount.split('/')[0]
         const chaptersTotal = ao3ChapterCount.split('/')[1]
         return chaptersWritten === chaptersTotal
@@ -205,12 +210,12 @@ CHECKLIST
     // Return position in series
     // input: "Part n of [seriesname]". output: "n"
     function getAO3SeriesPos(ao3SeriesInfo) {
-        return ao3SeriesInfo.replace(/^Part ([\d]+) of.*/gi, '$1')
+        return ao3SeriesInfo.replace(/^\s*Part ([\d]+) of.*/gi, '$1')
     }
 
     // Get valid link from AO3 works page, avoiding deprecated ".org/chapters/..."
     function getValidAO3Link() {
-        const IDfromKudos = $('#kudo_commentable_id').val()
+        const IDfromKudos = $('#kudo_commentable_id').value
         let url = IDfromKudos && 'https://archiveofourown.org/works/' + IDfromKudos
 
         if (!url) { // FIXME: (currently testing) If the kudos method fails, ALERT so I know I need to add a secondary option
@@ -236,8 +241,8 @@ CHECKLIST
     }
 
     // apparently this is illegal he c̶̮omes H̸̡̪̯ͨ͊̽̅̾̎Ȩ̬̩̾͛ͪ̈́̀́͘ ̶̧̨̱̹̭̯ͧ̾ͬC̷̙̲̝͖ͭ̏ͥͮ͟Oͮ͏̮̪̝͍M̲̖͊̒ͪͩͬ̚̚͜Ȇ̴̟̟͙̞ͩ͌͝S̨̥̫͎̭ͯ̿̔̀ͅ. nevertheless (AO3 summaries are simple, as is reddit's markdown):
-    function summaryToMarkdown(html) {
-        if (!html.includes('<')) { return '> ' + html } // check for presence of tags
+    function summaryToMarkdown(text) {
+        if (!text.includes('<')) { return `> ${text}\n\n` } // check for presence of tags
         const rx = {
             markdownCharsToEscape: RegExp(/[*_#^]|(?:<p>)\s*>/g), // exclude > character after a p tag (?:abc) = non-capturing group // HACK
             parabreak: RegExp(/<\/p>(?!$)/gi),
@@ -247,7 +252,7 @@ CHECKLIST
             blockquote: RegExp(/<blockquote>/gi),
             otherTags: RegExp(/<[/]?[^>]+>/gi),
         }
-        const markdown = blockquoteToMarkdown(html)
+        const markdown = blockquoteToMarkdown(text)
             .replaceAll(rx.markdownCharsToEscape, '\\$&')
             .replaceAll(rx.parabreak, '\n\n')
             .replaceAll(/[\n]{3,}/gi, '\n\n') // max two linebreaks.
