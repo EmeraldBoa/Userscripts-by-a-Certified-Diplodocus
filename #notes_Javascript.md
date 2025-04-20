@@ -18,6 +18,7 @@
 * classes
 * sodding "this"
 * userscript to simple extension?
+* abstract syntax trees (parsing purposes)
 
 # The DOM
 ## Manipulation
@@ -36,7 +37,7 @@
 ## NodeList
 * Loop with **`for...of`** or `.forEach` (slower), never with for...in
 ## Looping through
-* 
+* Array: `for... of`, `.forEach`, `.map(callback)`
 
 ## MutationObserver
 * `myObserver.observe(targetElement, config)` where `config` is an object:
@@ -91,3 +92,18 @@ console.log(
 Note how methods return 
 
 [Querying & traversing object properties (MDN)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Enumerability_and_ownership_of_properties)
+
+# Snippets (misc)
+
+Shorthand aliases for document.querySelector:
+
+```js
+const $ = document.querySelector.bind(document)
+const $$ = document.querySelectorAll.bind(document)
+
+// Another shorthand - not a perfect substitute for Element.querySelector, but helpful in some cases:
+
+const $ = (sel, root = document) => {root.querySelector(sel)}
+$('.class')       /* equivalent to */      document.querySelector('.class')
+$('.class', el)   /* equivalent to */      el.querySelector('.class')
+```
