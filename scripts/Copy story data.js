@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Copy story data
 // @namespace    http://tampermonkey.net/
-// @version      1.2.2
+// @version      1.3
 // @description  copies story data from AO3/FFN for pasting into MS Access or markdown (reddit)
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/*
@@ -14,30 +14,29 @@
 
 /*
 DONE
-    - script icon/name
-    - better selectors (bookmarks)
+
  TO DOs
-    [x] vanilla js - test
-    [x] simpler selectors for button prepend/appends
+    [ ] add SeriesURL (autofill when creating new series)
+    [ ] show Part N of [SeriesName](SeriesURL) in markdown
 
  MAYBEs
-    [x] tooltips (good if I share the script)
-    [x] round up wordcount in Markdown (exact, nearest 100, nearest 1000(k))
-    [x] tabindex?   '<a href="#"></a>', // href required for accessibility (key) - how to build button properly?
-      https://www.456bereastreet.com/archive/201302/making_elements_keyboard_focusable_and_clickable/
-
-CHECKLIST
-    [x] let > const
-    [x] == > ===
-    [x] arrow functions () => {}
+    [ ]
 
 !BUGS
 ----------------------------------------------------------------------------------------------------------------------
 */
+/**
+ * PURPOSE: copy story info from AO3 (work/bookmark page) and FFN (story page).
+ *
+ * INFO: Title, Link, Author, Summary, Wordcount, IsComplete (true/false), SeriesName, SeriesPosition
+ * FORMATS:
+ *  - accdb (key=value; ...):   Title="some title"; Link="https://somelink..."; ...
+ *  - reddit (markdown):        [*Title*](Link), by **Author** (Wordcount words)\n\n
+ *                              > Summary
+ */
 
 (function () {
     'use strict'
-    // const $ = (sel, par = document) => par.querySelector(sel) // TODO : check if this is safe/performant
     const $ = document.querySelector.bind(document) // shorthand for readability
     const $$ = document.querySelectorAll.bind(document)
     const parser = new DOMParser()
@@ -59,18 +58,6 @@ CHECKLIST
             work: /fanfiction\.net\/s\//i,
         },
     }
-    const button = { // subsequent elements will be nested: [EL1, EL2, EL3] becomes EL1 > EL2 > EL3
-        AO3: [
-            ['li', { class: 'AO3-copy' }],
-            ['a', { tabindex: 0 }], // for accessibility: add button to the normal tabbing order
-        ],
-        FFNtop: [
-            ['button', { class: 'FFN-copy btn pull-right' }],
-        ],
-        FFNbottom: [
-            ['button', { class: 'FFN-copy btn' }],
-        ],
-    }
     const copyTo = {
         access: {
             class: 'copy-for-AccessDB',
@@ -91,6 +78,18 @@ CHECKLIST
                     + summaryToMarkdown(story.Summary)
             },
         },
+    }
+    const button = { // subsequent elements will be nested: [EL1, EL2, EL3] becomes EL1 > EL2 > EL3
+        AO3: [
+            ['li', { class: 'AO3-copy' }],
+            ['a', { tabindex: 0 }], // for accessibility: add button to the normal tabbing order
+        ],
+        FFNtop: [
+            ['button', { class: 'FFN-copy btn pull-right' }],
+        ],
+        FFNbottom: [
+            ['button', { class: 'FFN-copy btn' }],
+        ],
     }
     class elWithAttr {
         constructor(type, attributes = {}) {
