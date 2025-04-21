@@ -4,8 +4,6 @@
 // @version      1.1
 // @description  Manually copy story info from whofic.com, formatted for Access or Reddit.
 // @author       CertifiedDiplodocus
-// @require      http://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js
-// @require      http://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js
 // @match        https://www.whofic.com/*
 // @exclude      /^https?:\/\/www\.whofic\.com\/(?!(viewuser|series|titles)\.php).*/
 // @icon         https://www.whofic.com/favicon.ico
@@ -14,164 +12,172 @@
 // @grant        GM_getValue
 // ==/UserScript==
 
-/* eslint-env jquery */
 /* global GM_addStyle, GM_setValue, GM_getValue */
 
 // *********************************************************************************
 // Inserts a copy button before every work on the page. When a button is clicked,  *
 // it copies the summary data (title, author, link...) of that particular story.   *
 // A dropdown menu (top right) lets you select the format of the copied text:      *
-// title || link || author...  for Access DB                                  *
-// markdown                    for Reddit                                     *
+// title || link || author...  for Access DB                                       *
+// markdown                    for Reddit                                          *
 // *********************************************************************************
 
-// **************** TO DO ***************************************************************// TODO
-// [ ] check if JQuery is used by whofic, and thus whether it can be removed. If not
-//      [ ] consider whether to switch to vanilla js
-// [ ] expand to work on search pages / check that nothing breaks when page has no stories (i.e. that the .storyBlock class isn't recycled)
-// *****************************************************************************************
+/* TO DO // ***************************************************************
+    [ ] remove jQuery
+    [ ] expand to work on search pages / check that nothing breaks when page has no stories (i.e. that the .storyBlock class isn't recycled)
+    [ ] check match/excludes
+    [ ] get series
+    [ ] add doctor (for ACCDB comments?)
+*/
 
 (function () {
     'use strict'
 
+    const errPrefix = '[Copy Story Data - userscript] \n⚠ Error: '
+    const currentURL = window.location.href
+
     GM_addStyle (`
-        #floatRight {float: right}
+        .format-selector {
+            float: right;
+            & span {
+                font-weight: bold;
+            }
+        }
     `)
 
-    let storyAll
-
-    // --------------------------------------------------------------------------------------------------
-    // Create dropdown to select formats
-    // https://stackoverflow.com/questions/17001961/how-to-add-drop-down-list-select-programmatically
-
-    // Create, format and append select list (and its label).
-    let copyFormatDiv = document.createElement('div')
-    copyFormatDiv.id = 'floatRight'
-    copyFormatDiv.innerHTML = '<span><b>Copy format: </b></span>'
-
-    let selectWhatFormat = document.createElement('select')
-    selectWhatFormat.id = 'formatSelector'
-
-    if (window.location.href.match(/whofic.com\/series.php/)) {
-        document.getElementsByClassName('jumpmenu')[0]
-            .appendChild(copyFormatDiv)
-        copyFormatDiv.appendChild(selectWhatFormat)
-    } else {
-        document.getElementsByClassName('sectionheader')[0]
-            .appendChild(copyFormatDiv)
-        copyFormatDiv.appendChild(selectWhatFormat)
-    }
-
-    // Create and append the options.
-    let arrFormat = ['Access DB', 'Markdown']
-    for (let i = 0; i < arrFormat.length; i++) {
-        let formatOption = document.createElement('option')
-        formatOption.value = arrFormat[i]
-        formatOption.text = arrFormat[i]
-        selectWhatFormat.appendChild(formatOption)
-    }
-
-    // Set dropdown to saved value, or default to "Access DB" if no saved value exists.
-    $('#formatSelector').val(GM_getValue('lastFormatSelected', 'Access DB'))
-
-    // On change, save the new value
-    $('#formatSelector').on('change', function () {
-        GM_setValue('lastFormatSelected', this.value)
-    })
-
-    // --------------------------------------------------------------------------------------------------
-    // Insert copy buttons and give each a unique identifier (copyBtn_0,1,2...)
-    let storyCount = jQuery('.storyBlock').length
-    for (let i = 0; i < storyCount; i++) {
-        jQuery('.storyBlock:eq(' + i + ') p:eq(0)')
-            .prepend('<button class="copy_for_AccessDB" type="button" id="copyBtn_' + i + '">&#128203;</button>  ')
-    }
-
-    // When a button is clicked, check its ID, then copy the corresponding storyBlock
-    jQuery('.copy_for_AccessDB').click(function () {
-        let i = this.id
-        i = i.slice(8) // strip "copyBtn_", leaving the ID number
-
-        /*
-        .find([selectors])    all descendants
-        .storyBlock:eq(n)     to select the nth story in the list (start counting at 0)
-        p:eq(0)               select the first paragraph tag
-        p:eq(0) a:eq(1)       select the second <a> from the first <p>
-        */
-
-        // Read the current storyBlock element, and get the remaining variables from there without requerying.
-        let storyObject = $('.storyBlock:eq(' + i + ')')
-        storyAll = storyObject.find('p:eq(0)').text().replace(/[ ]*\[Reviews - [0-9]+\]/, '') // just title, author and summary
-
-        const thisStory = {
-            Title: storyObject.find('p:eq(0) a:eq(0)').text(),
-            Link: 'https://www.whofic.com/' + storyObject.find('p:eq(0) a:eq(0)').attr('href'),
-            Author: storyObject.find('p:eq(0) a:eq(1)').text(),
-            Summary: storyObject.find('p:eq(0)').html() //                 The summary is after <br>, so fetch the entire text, title and all,
-                .replace(/.+<br>\n/, '').replace(/[\s]{2,}/, ' ').trim(), // then remove everything above the break.
-
-            Wordcount: storyObject.find('.list-inline:eq(1) li:eq(4)').text().replace('Word count: ', ''),
-            IsComplete: storyObject.find('.list-inline:eq(1) li:eq(3)').text().replace('Completed: ', '').charAt(0), // outputs "Y / N" (uppercase!)
+    class elWithAttr {
+        constructor(type, attributes = {}) {
+            const el = document.createElement(type)
+            Object.entries(attributes).forEach(at => el.setAttribute(...at))
+            return el
         }
-        if (window.location.href.match(/whofic.com\/series.php/)) {
-            thisStory.SeriesName = jQuery('div#pagetitle').html()
-                .replace(/ by <a.+/, '')
-            thisStory.SeriesPosition = parseInt(i) + 1 //                 Get the series position from the order on the page. (i starts at 0)
+    }
+
+
+    // --------------------------------------------------------------------------------------------------
+    // Create, format and append a labelled dropdown to select formats
+    const copyFormat = {
+        div: new elWithAttr('div', { class: 'format-selector' }),
+        label: document.createElement('span'),
+        selector: document.createElement('select'),
+    }
+    copyFormat.label.textContent = 'Copy format:'
+    const arrFormat = ['Access DB', 'Markdown'].map(format => new Option(format)) // .value defaults to .text
+    copyFormat.selector.append(...arrFormat)
+    copyFormat.div.append(copyFormat.label, copyFormat.selector)
+
+    // Set dropdown to saved value, or default to "Access DB" if no saved value exists. On change, save the new value
+    copyFormat.selector.value = GM_getValue('lastFormatSelected', 'Access DB')
+    copyFormat.selector.addEventListener('change', function () { GM_setValue('lastFormatSelected', this.value) })
+
+    const parentSection = (currentURL.match(/whofic.com\/series.php/)) ? '.jumpmenu' : '.sectionheader'
+    document.querySelector(parentSection).append(copyFormat.div)
+
+    // --------------------------------------------------------------------------------------------------
+    // Insert copy buttons
+    class copyBtn extends elWithAttr {
+        constructor(icon, className) {
+            super('button', { class: 'copy-btn' })
+            this.addEventListener('click', copyThisStory)
+            this.classList.add(className)
+            this.innerHTML = icon
+            return this
+        }
+    }
+
+    const storyBlock = document.querySelectorAll('.storyBlock')
+    for (const block of storyBlock) {
+        block.firstElementChild.prepend(new copyBtn('&#128203;', 'for-AccessDB'))
+    }
+
+    // When a button is clicked, copy the corresponding storyBlock
+    function copyThisStory() {
+        const thisStory = this.parentElement.parentElement // <div class="storyBlock"><p><button>... // MAYBE get from prev assigned const storyBlock?
+        const main = thisStory.querySelector('p')
+        const mainAnchors = main.querySelectorAll('a')
+        const details = thisStory.querySelectorAll('.list-inline')[1].querySelectorAll('.list-inline-item')
+
+        const story = {
+            Title: mainAnchors[0].textContent,
+            Link: 'https://www.whofic.com/' + mainAnchors[0].href,
+            Author: mainAnchors[1].textContent,
+            Summary: main.innerHTML.split('<br>')[1], // Get everything after the <br>
+            Wordcount: details[4].childNodes[1].textContent,
+            IsComplete: details[3].childNodes[1].textContent, // TODO convert to boolean
+        }
+
+        // Get series name & position (from the order on the page)
+        if (currentURL.match(/whofic.com\/series.php/)) {
+            story.SeriesName = document.querySelector('#pagetitle').firstChild.textContent.slice(0, -4)
+            // story.SeriesPosition = parseInt(i) + 1 // starting at 1 // TODO: get i
         }
 
         // Copy to clipboard in the selected format
         let formattedOutput
-        switch ($('#formatSelector').val()) {
+        switch (copyFormat.selector.value) {
             case 'Access DB':
-                formattedOutput = propertiesAndValues(thisStory, '=', ';')
+                formattedOutput = propertiesAndValues(story, '=', '; ')
                 break
             case 'Markdown':
-                formattedOutput = '[*' + thisStory.Title + '*](' + thisStory.Link + '), by **' + thisStory.Author + '** (' + thisStory.Wordcount + ' words)\n\n'
-                    + '>' + thisStory.Summary + '\n\n'
-                break
+                formattedOutput = `[*${story.Title}*](${story.Link}), by **${story.Author}** (${round(story.Wordcount)} words)\n\n`
+                    + `> ${story.Summary}`
         }
+        copyAndAlert(formattedOutput, 'Copied to ' + copyFormat.selector.text)
 
-        //        alert('element' + i + ':\n\n' + Object.values(thisStory).join('\n'));
-        copyToClipboard(formattedOutput)
-        tempAlert('Copied!', 1500)
+    }
 
-    })
+    function copyAndAlert(text, successMsg) {
+        const msg = copyToClipboard(text) && successMsg
+        timedPopover(msg, 1500)
+    }
 
     // FUNCTIONS FROM THE AO3 SCRIPT "copy story data". MAKE ALL CHANGES THERE.-------------------------
 
-    // https://stackoverflow.com/questions/33855641/copy-output-of-a-javascript-variable-to-the-clipboard
-    function copyToClipboard(text) {
-        let dummy = document.createElement('textarea')
-        // to avoid breaking orgain page when copying more words
-        // cant copy when adding below this code
-        // dummy.style.display = 'none'
-        document.body.appendChild(dummy)
-        // Be careful if you use textarea. setAttribute('value', value), which works with "input" does not work with "textarea". – Eduard
-        dummy.value = text
-        dummy.select()
-        document.execCommand('copy')
-        document.body.removeChild(dummy)
+    async function copyToClipboard(text) {
+        try {
+            await navigator.clipboard.writeText(text)
+            return true
+        } catch (error) {
+            alert (errPrefix + 'Couldn\'t copy to clipboard. See console for more details.')
+            console.error(
+                errPrefix, 'Couldn\'t copy to clipboard.\n\nLogged error:\n', error.message, `\n\ntext = "${text}"`
+            )
+        }
     }
 
-    function tempAlert(msg, duration) {
-        let el = document.createElement('div')
-        el.setAttribute('style', 'position:fixed;top:50%;left:45%;background-color:blanchedalmond;font-size:200%;'
-        + 'padding-left:20px;padding-right:20px;padding-top:10px;padding-bottom:10px')
-        // "position: fixed" -> relative to the browser window
-        // "position: absolute" -> relative to the document (or nearest parent)
+    // Create copy alert message with conditional "no summary" warning
+    const copyAlert = new elWithAttr('div', { class: 'copy-alert' }) // MAYBE popover - new in 2025
+    const txtDiv = document.createElement('div')
+    const noSummaryDiv = new elWithAttr('div', { class: 'no-summary' })
+    // noSummaryDiv.textContent = !story.Summary ? '[no summary]' : ''
+    copyAlert.append(txtDiv, noSummaryDiv)
+    document.body.append(copyAlert)
 
-        el.innerHTML = msg
-        el.id = 'dialog'
+    function timedPopover(msg, duration) {
+        txtDiv.textContent = msg
+        copyAlert.classList.add('show-alert')
         setTimeout(function () {
-            el.parentNode.removeChild(el)
+            copyAlert.classList.remove('show-alert')
         }, duration)
-        document.body.appendChild(el)
     }
 
     function propertiesAndValues(storyObj, assignChar, separator) {
         return Object
             .keys(storyObj)
-            .map(function (k) { return k + assignChar + storyObj[k] }).join(separator)
+            .map(k => k + assignChar + storyObj[k]).join(separator)
+    }
+
+    // Wordcount rounding (1-300 exact, 300+ round to nearest 1000, 1k+) with 'k' units
+    function round(n) {
+        const rounding = [
+            { to: 1, upperLim: 300 },
+            { to: 100, upperLim: 1000 },
+            { to: 1000 },
+        ]
+        const roundThis = rounding.find(interval => !(interval.upperLim < n))
+        n = Math.round(n / roundThis.to) * roundThis.to
+        if (n % 1000 === 0) { n = n / 1000 + 'k' }
+        return n
     }
 
 })()
