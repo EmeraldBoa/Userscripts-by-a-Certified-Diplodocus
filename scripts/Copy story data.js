@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Copy story data
-// @namespace    http://tampermonkey.net/
+// @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
 // @version      1.3
 // @description  copies story data from AO3/FFN for pasting into MS Access or markdown (reddit)
 // @author       CertifiedDiplodocus
