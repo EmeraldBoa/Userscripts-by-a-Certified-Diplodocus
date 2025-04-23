@@ -12,7 +12,7 @@
 // @license      GPL-3.0-or-later
 // ==/UserScript==
 
-//cannibalised from fangirlishness's ao3 Highlight tags V1, with thanks
+// cannibalised from fangirlishness's ao3 Highlight tags V1, with thanks
 
 /* eslint-env jquery */ //           allows jQuery
 /* jshint esversion:6 */ //          allows "let" in Greasemonkey
@@ -20,33 +20,33 @@
 /* PURPOSE: Highlight your favourite fandoms when when visiting another user's dashboard.
 Add your username to the second exclude line to keep from lighting up your own page.
 
-Will not highlight tags. If that's your goal, use this: https://greasyfork.org/en/scripts/424852-ao3-highlight-tags-v2)*/
+Will not highlight tags. If that's your goal, use this: https://greasyfork.org/en/scripts/424852-ao3-highlight-tags-v2) */
 
-(function($) {
-    'use strict';
+(function ($) {
+    'use strict'
 
     // check that config extension is loaded, throw error if not
-    if (!window.fandomHighlighterConfig) {throw new Error("⚠ AO3 Fandom Highlighter CONFIG not loaded")}
+    if (!window.fandomHighlighterConfig) { throw new Error('⚠ AO3 Fandom Highlighter CONFIG not loaded') }
 
     // pass variables from config script
     const config = window.fandomHighlighterConfig,
-          fandomsToHighlight = config.fandomsToHighlight,
-          fandomsInColour = config.fandomsInColour,
-          highlightIsOn = config.highlightIsOn,
-          boldIsOn = config.boldIsOn,
-          customHighlightIsOn = config.customHighlightIsOn,
-          highlightDefaultCol = config.highlightDefaultCol;
+        fandomsToHighlight = config.fandomsToHighlight,
+        fandomsInColour = config.fandomsInColour,
+        highlightIsOn = config.highlightIsOn,
+        boldIsOn = config.boldIsOn,
+        customHighlightIsOn = config.customHighlightIsOn,
+        highlightDefaultCol = config.highlightDefaultCol
 
     // check that settings make sense; if not, throw error and halt script
     if (!highlightIsOn && !boldIsOn && !customHighlightIsOn && !highlightDefaultCol) {
-        throw new Error("⚠ AO3 Fandom Highlighter CONFIG: no highlight/bold/colours selected")
+        throw new Error('⚠ AO3 Fandom Highlighter CONFIG: no highlight/bold/colours selected')
     }
     if (!fandomsToHighlight.some(Boolean) && !fandomsInColour.some(Boolean)) {
-        throw new Error("⚠ AO3 Fandom Highlighter CONFIG: no fandoms selected")
+        throw new Error('⚠ AO3 Fandom Highlighter CONFIG: no fandoms selected')
     }
 
     // for each fandom in the list, iterate through fandoms, check against list, then highlight and/or bold
-    $('.fandom.listbox.group li>a').each(function() {
+    $('.fandom.listbox.group li>a').each(function () {
 
         const $fandom = $(this)
         const text = $fandom.text()
@@ -54,9 +54,9 @@ Will not highlight tags. If that's your goal, use this: https://greasyfork.org/e
         // custom highlighting, if applicable (priority over normal highlighting).
         if (customHighlightIsOn) {
             for (const fandomRegex in fandomsInColour) {
-                if (RegExp(fandomRegex, "gi").test(text)) {
+                if (RegExp(fandomRegex, 'gi').test(text)) {
                     formatFandom($fandom, fandomsInColour[fandomRegex])
-                    return; // go to next fandom in loop - by exiting the .each(function()
+                    return // go to next fandom in loop - by exiting the .each(function()
                 }
             }
         }
@@ -64,19 +64,19 @@ Will not highlight tags. If that's your goal, use this: https://greasyfork.org/e
         // default highlighting (user-defined colour). For...in for objects, for... of for arrays.
         if (highlightIsOn || boldIsOn) {
             for (const fandomRegex of fandomsToHighlight) {
-                if (RegExp(fandomRegex, "gi").test(text)) {
+                if (RegExp(fandomRegex, 'gi').test(text)) {
                     formatFandom($fandom, highlightDefaultCol)
-                    return; // go to next fandom
+                    return // go to next fandom
                 }
             }
         }
-    });
+    })
 
     // ----------------------------------------------------------------
 
     function formatFandom($fandom, colour) {
-        $fandom.css('background-color', colour);
-        if(boldIsOn) $fandom.css('font-weight', 'bold');
+        $fandom.css('background-color', colour)
+        if (boldIsOn) $fandom.css('font-weight', 'bold')
     }
 
-})(jQuery);
+})(jQuery)
