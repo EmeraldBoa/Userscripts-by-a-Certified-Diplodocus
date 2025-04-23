@@ -361,7 +361,7 @@ DONE
     const copyAlert = new elWithAttr('div', { class: 'copy-alert' }) // MAYBE popover - new in 2025
     const txtDiv = document.createElement('div')
     const noSummaryDiv = new elWithAttr('div', { class: 'no-summary' })
-    noSummaryDiv.textContent = !story.Summary ? '[no summary]' : ''
+    noSummaryDiv.textContent = !story.Summary ? '[no summary]' : '' // TODO : remake as "warning" (general purposes)
     copyAlert.append(txtDiv, noSummaryDiv)
     document.body.append(copyAlert)
 

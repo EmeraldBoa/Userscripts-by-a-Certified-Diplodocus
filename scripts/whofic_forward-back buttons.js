@@ -4,7 +4,7 @@
 // @version      1.0
 // @description  Add first/last and forward/back buttons next to the chapter selector.
 // @author       CertifiedDiplodocus
-// @match        https://www.whofic.com/viewstory.php?*
+// @match        https://www.whofic.com/viewstory.php?sid=*&chapter=*
 // @icon         https://www.whofic.com/favicon.ico
 // @grant        GM_addStyle
 // @license      GPL-3.0-or-later
