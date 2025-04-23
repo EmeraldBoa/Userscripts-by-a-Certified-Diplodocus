@@ -38,7 +38,7 @@ https://commons.wikimedia.org/wiki/File:Cib-archive-of-our-own_(CoreUI_Icons_v1.
             'Daily Show', 'Discworld', 'Dishonored .Video Games.', 'Doctor Who',
             'Dresden Files', 'Dragon Age II', 'Dungeon Meshi',
             'Encanto', 'Fake News', 'Firefly', 'Fullmetal Alchemist',
-            'Good Omens', 'Gravity Falls', 'Harry Potter', 'Hornblower', 'House M\.D\.',
+            'Good Omens', 'Gravity Falls', 'Harry Potter', 'Hornblower', 'House M.D.',
             'Indiana Jones', 'Jonathan Creek', 'Jonathan Strange & Mr Norrell',
             'Kung Fu Panda', 'League of Legends', 'Life On Mars',
             'MASH', 'Mob Psycho 100', 'Monty Python', 'Mushishi', 'My Hero Academia', 'Mystery Skulls Animated',
@@ -94,3 +94,5 @@ https://commons.wikimedia.org/wiki/File:Cib-archive-of-our-own_(CoreUI_Icons_v1.
     }
 
 })()
+
+// TODO: look into js documentation thingy
