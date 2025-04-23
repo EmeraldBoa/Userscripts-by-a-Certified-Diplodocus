@@ -1,179 +1,207 @@
 // ==UserScript==
 // @name         📋 Copy SERIES
-// @namespace    http://tampermonkey.net/
+// @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
 // @version      1.2
 // @description  copies story data from AO3 for pasting into MS Access
 // @author       CertifiedDiplodocus
-// @require      http://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js
-// @require      http://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js
 // @match        http*://archiveofourown.org/series/*
-// @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
+// @icon         data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>
 // @grant        none
 // ==/UserScript==
 
-/* eslint-env jquery */
+(function () {
+    'use strict'
+    const $ = document.querySelector.bind(document) // shorthand for readability
+    const $$ = document.querySelectorAll.bind(document)
+    // const parser = new DOMParser()
+    const errPrefix = '[Copy Series Data - userscript] \n⚠ Error: '
 
-this.$ = this.jQuery = jQuery.noConflict(true); // Prevent conflict with website JQuery libraries (on FFN specifically)
+    const storyCollection = {}
 
-//TO DO: Do I need jquery ui? Does FFN have jquery?
-
-(function() {
-    'use strict';
-
-    var stories = new Array();
-    let storyData = ''
-    let seriesInfo = ''
+    const currentURL = window.location.href
+    const URLregex = {
+        AO3: {
+            series: /archiveofourown\.org\/series/i,
+        },
+    }
+    const copyTo = {
+        access: {
+            class: 'copy-for-AccessDB',
+            icon: '&#128203;',
+            message: 'Copied for DB',
+            tooltip: 'Copy info for DB: "key1=value1; key2=value2..."',
+            get format() {
+                return stringifyMultiple()
+            },
+        },
+    }
+    const button = { // subsequent elements will be nested: [EL1, EL2, EL3] becomes EL1 > EL2 > EL3
+        AO3: [
+            ['li', { class: 'AO3-copy' }],
+            ['a', { tabindex: 0 }], // for accessibility: add button to the normal tabbing order
+        ],
+    }
+    class elWithAttr {
+        constructor(type, attributes = {}) {
+            const el = document.createElement(type)
+            Object.entries(attributes).forEach(at => el.setAttribute(...at))
+            return el
+        }
+    }
+    class copyBtn {
+        constructor(buttonInfo, copyFormat) {
+            const elems = buttonInfo.map(
+                elemInfo => new elWithAttr(...elemInfo) // create elements
+            )
+            for (let i = 0; i < elems.length - 1; i++) {
+                elems[i].append(elems[i + 1]) // nest elements
+            }
+            const btn = elems[0]
+            const lastChild = elems.at(-1)
+            btn.classList.add(copyFormat.class)
+            btn.setAttribute('title', copyFormat.tooltip)
+            btn.addEventListener('click', copyAlert) // LEARN : is this an improvement on the anonymous function, memorywise?
+            function copyAlert() {
+                const msg = copyToClipboard(copyFormat.format) && copyFormat.message
+                timedPopover(msg, 1500)
+            }
+            lastChild.innerHTML = copyFormat.icon
+            return btn
+        }
+    }
 
     // set variables for work page or bookmark
-    if (window.location.href.match(/archiveofourown\.org\/series/i)) {
-        const series = {
-            Title: $('h2.heading').text().trim(),
-            Link: window.location.href,
-            Summary: $('.series.meta.group .userstuff:eq(0)').html().trim(),
-            //iterate through stories
+    if (currentURL.match(URLregex.AO3.series)) {
+        const seriesDetails = $$('.meta .userstuff')
+        const seriesInfo = {
+            Title: $('h2.heading').textContent,
+            Link: currentURL,
+            Description: seriesDetails[0].innerHTML || '',
+            Notes: seriesDetails[1].innerHTML || '',
         }
-        cleanStory(series);
-        seriesInfo = propertiesAndValues(series, "=", "; ")
-        storyData = 'Series = {' + seriesInfo + '};\n\n';
+        Object.assign(storyCollection, { Series: seriesInfo })
 
-        $('li.work').each(function(i) {
-            var item = $(this)
-
-            stories[i] = new story;
-            stories[i] = {
-                Title:  item.find('h4.heading a').first().text().trim(),
-                Link: 'https://archiveofourown.org' + item.find('div.header h4.heading a').first().attr('href'),
-                Author: item.find('a[rel="author"]').text().trim(),
-                Summary: item.find('.summary').html().trim(),
-                Wordcount: item.find('dd.words').text().trim(),
-                IsComplete: isAO3FicComplete(item.find('dd.chapters').text().trim()), //return boolean
-                SeriesName: item.find('ul.series li a').text().trim(),
-                SeriesPosition: getAO3SeriesPos(item.find('ul.series li strong').text().trim())
-            };
-            cleanStory(stories[i]);
-            let storyInfo = propertiesAndValues(stories[i], "=", "; ");
-            storyData = storyData + 'Story' + i + ' = {' + storyInfo + '}; \n\n';
-
-        });
+        // iterate through stories
+        $('.work.blurb').forEach((work, i) => {
+            const heading = work.querySelector('.header a') // maybe use $$, header[i]
+            const stats = work.querySelectAll('.stats > dd')
+            const story = {
+                Title: heading[0].textContent,
+                Link: heading[0].href,
+                Author: heading[1].textContent,
+                Fandom: heading[3].textContent,
+                Summary: work.querySelector('.summary')?.innerHTML || '', // handle empty summaries
+                Wordcount: stats.querySelector('.words').textContent,
+                IsComplete: isAO3FicComplete(stats.querySelector('.chapters').textContent), // return boolean
+                SeriesPosition: getAO3SeriesPos(this.querySelector('.series')?.textContent || ''), // TODO handle fics in multiple series
+            }
+            Object.assign(storyCollection, { [`Story${i}`]: story })
+        })
 
         // Add copy buttons at top of page
-        jQuery('div#main .navigation.actions').append('<li class="copy_for_AccessDB" onmouseover="" style="cursor: pointer;"><a>&#128203;</a></li>');
-
+        $('#main > .navigation').append(new copyBtn(button.AO3, copyTo.access))
     };
-
-    // Copy story data to Access (format: "title=sometitle; author=someauthor; ...")
-    jQuery('.copy_for_AccessDB').click(function() {
-        //        alert(storyData); //                              uncomment for popup summary
-        copyToClipboard(storyData);
-        tempAlert('Copied',1500)
-
-    });
-
-
-    // CODE PENDING -----------------------------------------------------------------
-
-    // to do next: find a way to make a format switcher for the button
-    // OR create a second script which can be activated to switch to Markdown
-
-    // FORMATS
-    let formattedOutput
-    switch($('#formatSelector').val()) {
-        case 'Access DB':
-            formattedOutput = [story.Title, story.Link, story.Author, story.Summary, story.Wordcount].join('||')
-            break;
-        case 'Markdown':
-            formattedOutput = '[*' + story.Title + '*](' + story.Link + '), by **' + story.Author + '** (' + story.Wordcount + ' words)\n\n' +
-                '>' + story.Summary + '\n\n';
-            break;
-    }
-
-    // Ctrl+click functionality [https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/ctrlKey]
-    let log = document.querySelector('.copy_for_AccessDB');
-    document.addEventListener('click', logKey);
-
-    function logKey(e) {
-        //log.textContent = `The ctrl key is pressed: ${e.ctrlKey}`; //Uncomment to test if the function works: should change the text of the buttons with class .copy_for_AccessDB
-
-        //open settings dialog
-    }
 
     // FUNCTIONS -----------------------------------------------------------------------------
 
-    function story(Title, Link, Author, Summary){
-        story.Title = Title
-        story.Link = Link
-        story.Author = Author
-        story.Summary = Summary
-    }
-
-    function cleanStory(storyObj) {
-        storyObj.Summary = storyObj.Summary.replace(/<br\/*>/gi,"</p><p>") //     - replace line breaks with paragraphs
-            .replace(/<\/*blockquote>|^<p><\/p>|<p><\/p>$/gi,"") //               - delete blockquotes and blank start/end paragraphs
-            .replace(/(?!^)<p>(?!<)/gi,"<p>&nbsp;&nbsp;&nbsp;&nbsp;") //          - add four-space indent after <p>, excluding the first and blank paragraphs
-            .replace(/>\s+</g, "><"); //                                          - clean whitespace between HTML tags
-       storyObj.Link = storyObj.Link.replace(/\?.+/,""); //                       - delete comments, bookmark info etc
-       if('WordCount' in storyObj) {
-           storyObj.Wordcount = storyObj.Wordcount.replace(/,/gi, "") //          - remove any decimal commas in wordcount
-       };
-    }
-
-    function nz(myVariable) {
-        if (typeof myVariable === 'undefined') {
-            return ''
-        } else { return myVariable }
+    function stringifyMultiple() {
+        return propertiesAndValues(
+            propertiesAndValues(storyCollection, '=', '; '),
+            ' = {',
+            '};\n\n'
+        )
     }
 
     function propertiesAndValues(storyObj, assignChar, separator) {
         return Object
             .keys(storyObj)
-            .map(function(k) {return k + assignChar + storyObj[k] }).join(separator);
+            .map(function (k) { return k + assignChar + storyObj[k] }).join(separator)
     }
 
-    // AO3 chapter format is "3/?", "31/31", "3/10"... If chapters written = total chapters, the fic is complete. Outputs "y" or "n".
-    // input: "n/n" where n is a number
+    // AO3 chapter format is "3/?", "31/31", "3/10"...
+    // input: "n/m" where n is a number. output: boolean
     function isAO3FicComplete(ao3ChapterCount) {
-        ao3ChapterCount = ao3ChapterCount.split("/")
-        let chaptersWritten = ao3ChapterCount[0]
-        let chaptersTotal = ao3ChapterCount[1]
-        //return chaptersWritten==chaptersTotal ? "y" : "n";
-        return chaptersWritten==chaptersTotal;
+        ao3ChapterCount = ao3ChapterCount.trim()
+        const chaptersWritten = ao3ChapterCount.split('/')[0]
+        const chaptersTotal = ao3ChapterCount.split('/')[1]
+        return chaptersWritten === chaptersTotal
     }
 
     // Return position in series
     // input: "Part n of [seriesname]". output: "n"
     function getAO3SeriesPos(ao3SeriesInfo) {
-        return ao3SeriesInfo
-            .replace(/^Part /gi,"")
-            .replace(/ .+/,""); //     remove everything after the second space
+        return ao3SeriesInfo.replace(/^\s*Part ([\d]+) of.*/gi, '$1')
     }
 
-    //https://stackoverflow.com/questions/33855641/copy-output-of-a-javascript-variable-to-the-clipboard
-    function copyToClipboard(text) {
-        var dummy = document.createElement("textarea");
-        // to avoid breaking orgain page when copying more words
-        // cant copy when adding below this code
-        // dummy.style.display = 'none'
-        document.body.appendChild(dummy);
-        //Be careful if you use textarea. setAttribute('value', value), which works with "input" does not work with "textarea". – Eduard
-        dummy.value = text;
-        dummy.select();
-        document.execCommand("copy");
-        document.body.removeChild(dummy);
+    async function copyToClipboard(text) {
+        try {
+            await navigator.clipboard.writeText(text)
+            return true
+        } catch (error) {
+            alert (errPrefix + 'Couldn\'t copy to clipboard. See console for more details.')
+            console.error(
+                errPrefix, 'Couldn\'t copy to clipboard.\n\nLogged error:\n', error.message, `\n\ntext = "${text}"`
+            )
+        }
     }
 
-    function tempAlert(msg,duration) {
-        var elem = document.createElement("div");
-        elem.setAttribute("style","position:fixed;top:50%;left:45%;background-color:blanchedalmond;font-size:200%;" +
-                          "padding-left:20px;padding-right:20px;padding-top:10px;padding-bottom:10px");
-        // "position: fixed" -> relative to the browser window
-        // "position: absolute" -> relative to the document (or nearest parent)
+    // Create copy alert message with conditional "no summary" warning
+    const copyAlert = new elWithAttr('div', { class: 'copy-alert' })
+    const txtDiv = document.createElement('div')
+    const missingContentDiv = new elWithAttr('div', { class: 'missing-content' })
+    copyAlert.append(txtDiv, missingContentDiv)
+    document.body.append(copyAlert)
 
-        elem.innerHTML = msg;
-        elem.id = 'dialog';
-        setTimeout(function(){
-            elem.parentNode.removeChild(elem);
-        },duration);
-        document.body.appendChild(elem);
+    function timedPopover(msg, duration) {
+        txtDiv.textContent = msg
+        copyAlert.classList.add('show-alert')
+        setTimeout(function () {
+            copyAlert.classList.remove('show-alert')
+        }, duration)
     }
 
-})();
+    // eslint-disable-next-line no-undef
+    GM_addStyle (`
+    .copy-alert {
+        position: fixed; /* relative to browser window */
+        inset: 0;
+        width: fit-content;
+        height: fit-content;
+        margin: auto;
+        font-size: 200%;
+        padding: 10px 20px; /* top/bottom left/right */
+        background-color: blanchedalmond;
+        border-radius: 0.2em;
+        box-shadow: 1px 1px 5px #aaa; /* from AO3 div.wrapper */
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 250ms ease-in, visibility 0ms ease-in 250ms;
+        &.show-alert {  
+            visibility: visible;
+            opacity: 100%;
+            transition-delay: 0ms;
+        }
+        .missing-content {
+            font-size: 50%;
+            padding-top: 5px;
+            text-align: center;
+            color: #900; 
+        }
+    }
+    .AO3-copy {
+        cursor: pointer;
+        img {
+            height: 18px;
+        }
+    }
+    `)
+
+})()
+
+/*
+Series = {Title=Chaos Reign; Link=https://archiveofourown.org/series/2250978; Summary=<p>If a butterfly flapping its wings can cause a storm on another continent, the God of Chaos escaping with the Tesseract is bound to change the course of the universe.</p><p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>};
+
+Story0 = {Title=Chaos Reign; Link=https://archiveofourown.org/works/18634708; Author=fourth_rose; Summary=<p>Thor once told Loki that he could be more than the God of Mischief – forgetting that Loki has been more than that from the very beginning.</p>; Wordcount=110,534; IsComplete=true; SeriesName=Chaos Reign; SeriesPosition=1};
+
+Story1 = {Title=Moments in Time; Link=https://archiveofourown.org/works/33973333; Author=fourth_rose; Summary=<p>It is in the nature of stories that there must be things which fall through the cracks, but some of them may still be worth keeping.</p>; Wordcount=8,045; IsComplete=false; SeriesName=Chaos Reign; SeriesPosition=2};
+*/

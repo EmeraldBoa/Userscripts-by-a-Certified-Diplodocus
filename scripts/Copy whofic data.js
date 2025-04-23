@@ -6,7 +6,7 @@
 // @author       CertifiedDiplodocus
 // @match        https://www.whofic.com/series.php?seriesid=*
 // @match        https://www.whofic.com/viewuser.php*
-// @icon         https://www.whofic.com/favicon.ico 
+// @icon         https://www.whofic.com/favicon.ico
 // @grant        GM_addStyle
 // @grant        GM_setValue
 // @grant        GM_getValue
