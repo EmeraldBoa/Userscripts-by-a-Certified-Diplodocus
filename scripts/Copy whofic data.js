@@ -6,7 +6,7 @@
 // @author       CertifiedDiplodocus
 // @match        https://www.whofic.com/series.php?seriesid=*
 // @match        https://www.whofic.com/viewuser.php*
-// @icon         https://www.whofic.com/favicon.ico // TODO maybe change? If not, then upscale
+// @icon         https://www.whofic.com/favicon.ico 
 // @grant        GM_addStyle
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -14,6 +14,8 @@
 // ==/UserScript==
 
 /* global GM_addStyle, GM_setValue, GM_getValue */
+
+// TODO change icon to clipboard - or upscale
 
 // *********************************************************************************
 // Inserts a copy button before every work on the page. When a button is clicked,  *
