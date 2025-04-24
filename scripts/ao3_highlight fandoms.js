@@ -50,15 +50,15 @@
 
         // custom highlighting, if applicable (priority over normal highlighting).
         if (customHighlightIsOn) {
-            for (const fandomRegex in fandomsInColour) {
+            for (const [fandomRegex, col] of Object.entries(fandomsInColour)) {
                 if (RegExp(fandomRegex, 'gi').test(fandom.textContent)) {
-                    formatFandom(fandom, fandomsInColour[fandomRegex])
+                    formatFandom(fandom, col)
                     return // go to next fandom
                 }
             }
         }
 
-        // default highlighting (user-defined colour). For...in for objects, for... of for arrays.
+        // default highlighting (user-defined colour).
         if (highlightIsOn || boldIsOn) {
             for (const fandomRegex of fandomsToHighlight) {
                 if (RegExp(fandomRegex, 'gi').test(fandom.textContent)) {
@@ -70,8 +70,8 @@
     })
 
     function formatFandom(fandom, colour) {
-        fandom.css('background-color', colour)
-        if (boldIsOn) fandom.css('font-weight', 'bold')
+        fandom.style.backgroundColor = colour
+        if (boldIsOn) fandom.style.fontWeight = 'bold'
     }
 
 })()
