@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AO3: just my languages
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.2.1
+// @version      1.2.2
 // @description  Reduce language options to your preferences
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/*
@@ -15,7 +15,6 @@
 // @license      GPL-3.0-or-later
 // ==/UserScript==
 
-/* eslint-env jquery */ //           allows jQuery
 /* global GM_addStyle */
 
 /* PURPOSE: Simplify language search options on AO3. Choose any combination of the following:
@@ -33,8 +32,9 @@ When creating or editing a work, you can:
 TIP: add all languages close to yours (e.g. if you read English you can read Scots, if you read Spanish
 you have a fair shot at Galego and Asturianu, etc)
 ---------------------------------------------------------------------------------------------------------------------- */
-(function ($) {
+(function () {
     'use strict'
+    const $ = document.querySelector.bind(document) // shorthand for readability
 
     /* ======================== 𒈾 USER SETTINGS (save to plaintext file in case of script updates) 𒈾 ==============================
 
@@ -71,6 +71,7 @@ you have a fair shot at Galego and Asturianu, etc)
     if (autofillSearch === 2 && !(languagesForMultilingualSearch || dropdownLanguages)) { throw errPrefix + 'To autofill a multilingual search, add some languages first!' }
 
     const pageURL = window.location.href
+    const changeEvent = new Event('change')
     let dropdown, searchbox
 
     // -------------------------------------------------------------------------------------------------------------------------------
@@ -111,14 +112,16 @@ you have a fair shot at Galego and Asturianu, etc)
             autofillBlankDropdown(defaultLanguage)
             break
         case 2:
-            if (searchbox.val().trim().length === 0) {
-                searchbox.val(languageFilters)
+            if (searchbox.value.trim().length === 0) {
+                searchbox.value = languageFilters
             }
     }
 
     // Add (𒈾) button for multilingual searches next to "Languages" label.
-    const dropdownLabel = dropdown.parent().prev()
-    const babelButton = $(`<a class="question"><span class="symbol question babel-button">&#74302;</span></a>`)
+    const dropdownLabel = dropdown.parentElement.previousElementSibling
+    const babelButton = createNewElement('a', 'question')
+    const span = createNewElement('span', 'symbol question babel-button', '𒈾')
+    babelButton.append(span)
     dropdownLabel.append(babelButton)
 
     function createNewElement(elementType, className, textContent) {
@@ -129,40 +132,39 @@ you have a fair shot at Galego and Asturianu, etc)
     }
 
     // On click of (𒈾), add OR remove language filters from the "all fields" searchbox (after the current query)
-    babelButton.click(function () {
-        const searchboxContent = searchbox.val().trim()
+    babelButton.addEventListener('click', function () {
+        const searchboxContent = searchbox.value.trim()
         if (searchboxContent.length === 0) {
-            searchbox.val(languageFilters)
+            searchbox.value = languageFilters
         } else if (!searchboxContent.includes(languageFilters)) {
-            searchbox.val(searchboxContent + ' ' + languageFilters) // toggle on
+            searchbox.value = searchboxContent + ' ' + languageFilters // toggle on
         } else {
-            searchbox.val(searchboxContent.replace(languageFilters, '').trim()) // toggle off
+            searchbox.value = searchboxContent.replace(languageFilters, '').trim() // toggle off
         }
-        searchbox.trigger('change')
+        searchbox.dispatchEvent(changeEvent)
     })
 
     // Conditional CSS: alignment + colour (on search pages, 𒈾 should use the default page style to match the neighbouring "?")
-    babelButton.children().first().toggleClass('babel-normal-align', !window.location.href.includes('/search'))
-    searchbox.on('change', indicateBabelStatus)
+    span.classList.toggle('babel-normal-align', !pageURL.includes('/search'))
+    searchbox.addEventListener('change', indicateBabelStatus)
     indicateBabelStatus()
 
     // -------- FUNCTIONS ------------------------------------------------------------------------------------------------------------
 
     // Colour 𒈾 green as long as the search box contains the filter (check with different site skins). Set the tooltip.
     function indicateBabelStatus() {
-        const languageFiltersOn = searchbox.val().includes(languageFilters)
-        babelButton.children().first().toggleClass('babel-button-filter-on', languageFiltersOn)
+        const languageFiltersOn = searchbox.value.includes(languageFilters)
+        span.classList.toggle('babel-button-filter-on', languageFiltersOn)
         babelButton
-            .attr('title', `${languageFiltersOn ? 'Searching' : 'Search'} multiple languages:
+            .setAttribute('title', `${languageFiltersOn ? 'Searching' : 'Search'} multiple languages:
             ${languagesForMultilingualSearch.join(', ')}`) // in template literals, make a newline to break, no code needed!
     }
 
     // Show only your chosen languages (+ blank option) in the dropdown (filter or editing)
     function reduceDropdownLangs() {
-        dropdown.children().hide()
-        dropdown.children('[value=""]').show()
-        for (let userLang of dropdownLanguages) {
-            dropdown.children(`[lang="${userLang}"]`).show()
+        dropdown.classList.add('just-my-langs')
+        for (const userLang of dropdownLanguages) {
+            dropdown.querySelector(`[lang="${userLang}"]`).classList.add('show')
         }
     }
 
@@ -170,14 +172,14 @@ you have a fair shot at Galego and Asturianu, etc)
     function boldDropdownLangs() {
         if (!boldedLanguages.some(Boolean)) { return }
         for (let userLang of boldedLanguages) {
-            dropdown.children(`[lang="${userLang}"]`).css('font-weight', 'bold')
+            dropdown.querySelector(`[lang="${userLang}"]`).classList.add('bold')
         }
     }
 
     // Autofill the dropdown if it is empty and the user selected a default language
     function autofillBlankDropdown(defaultLang) {
-        if (!defaultLang || dropdown.val()) { return }
-        dropdown.children(`[lang="${defaultLanguage}"]`).attr('selected', 'selected')
+        if (!defaultLang || dropdown.value) { return }
+        dropdown.querySelector(`[lang="${defaultLang}"]`).setAttribute('selected', 'selected')
     }
 
     // Check that all user languages exist (run after the dropdown is set)
@@ -189,7 +191,7 @@ you have a fair shot at Galego and Asturianu, etc)
                 .filter(x => x) // no empty values
         )
         const ao3LangList = new Set(
-            $.map (dropdown.children(), el => el.getAttribute('lang'))
+            [...dropdown.children].map(el => el.getAttribute('lang'))
         )
         const invalidLanguageCodes = allUserLanguages.difference(ao3LangList)
         if (invalidLanguageCodes.size === 0) { return true }
@@ -204,7 +206,7 @@ you have a fair shot at Galego and Asturianu, etc)
 
     GM_addStyle (`
     .babel-button {
-        cursor:copy;
+        cursor: copy;
     }
     span.babel-normal-align {
         vertical-align:inherit;
@@ -213,6 +215,16 @@ you have a fair shot at Galego and Asturianu, etc)
         color: mintcream;
         background-color: darkgreen;
         border-color: darkgreen;
+    }
+    .just-my-langs > option {
+        display: none;
+        &[value=''], /* always show the default (blank) */
+        &.show {
+            display: initial;
+        }
+        &.bold {
+            font-weight: bold;
+        }
     }
     `)
 
@@ -357,9 +369,9 @@ yue: 中文-广东话 粵語
 zh:  中文-普通话 國語
 
 
- Userscript should activate only on URLs with language filtering.
- If it doesn't activate on a page, and it should, let me know.
- (Quick & dirty fix: delete the @exclude lines at the start of the script to enable the script on all of AO3.)
+Userscript should activate only on URLs with language filtering.
+If it doesn't activate on a page, and it should, let me know.
+(Quick & dirty fix: delete the @exclude lines at the start of the script to enable the script on all of AO3.)
 
 Include: all URLS with /works or /bookmarks; new/edit work; the exact url "https://archiveofourown.org/search"
 Exclude: individual works/bookmarks, advanced search results (no tag filtering = no filter sidebar)
@@ -393,6 +405,6 @@ TAMPERMONKEY REGEX ISSUE: the line
 @exclude      /\/works\/[0-9]+(?![0-9]*\/edit)/
 should also block /works/123/comments/edit, but doesn't. See https://stackoverflow.com/questions/68826178/exclude-in-userscript-not-working-as-expected
 for another script where the regex fails in Tampermonkey, but not Violentmonkey
- */
+*/
 
-})(jQuery)
+})()
