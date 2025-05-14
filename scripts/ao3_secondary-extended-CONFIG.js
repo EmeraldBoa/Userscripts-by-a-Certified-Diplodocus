@@ -13,47 +13,48 @@
 // @grant        none
 // @run-at       document-start
 // ==/UserScript==
+
 /* Icon by FSock on Wikimedia Commons. Licensed under CC4.0 https://creativecommons.org/licenses/by/4.0/deed.en
 https://commons.wikimedia.org/wiki/File:Cib-archive-of-our-own_(CoreUI_Icons_v1.0.0).svg
 
 Currently active on works/* and tags/* pages. To also enable on user pages, add the following line in the header:
     // @match        http*://archiveofourown.org/users/*
-'------------------------------------------------------------------------------------------------------------------*/
+'------------------------------------------------------------------------------------------------------------------ */
 // TODO: rewrite & simplify examples
 
-(function() {
-    'use strict';
+(function () {
+    'use strict'
 
     window.secondaryCharAndRelFilter = {
 
-        /******************************** CONFIG **********************************/
-        // Edit this file with your own settings, then check that both it and     //
-        // the main script are enabled in Tampermonkey/Violentmonkey.             //
-        // When the main script updates, your configuration will be unchanged.    //
-        /**************************************************************************/
+        /** ****************************** CONFIG **********************************
+         * Edit this file with your own settings, then check that both it and     *
+         * the main script are enabled in Tampermonkey/Violentmonkey.             *
+         * When the main script updates, your configuration will be unchanged.    *
+         **************************************************************************/
 
         ao3SaviorIsInstalled: true,
         // prevent conflicts with "ao3 savior" userscript. If true, adds a delay to allow ao3 savior to finish executing
 
         useRegex: true,
-        // choose *wildcards (default) or regex (more flexible, for advanced users). Wildcards are usually enough for most purposes, but NOTE:
-        //     - 'Naruto' (wildcard search) will match EXACTLY that character tag. To also match 'Naruto Uzumaki' and 'Uzumaki Naruto' you must enter '*Naruto*'
-        //     - 'Naruto' (regex search) will match all tags containing that word, including 'Naruto Uzumaki's Evil Twin'. For an exact match, enter '^Naruto$'
-        //     - If a name contains apostrophes, wrap it in double quotes: "O'Malley"
-        // (more tips below)
-        //----------------------------------------------------------------------------------------------------
+        /** choose *wildcards (default) or regex (more flexible, for advanced users). Wildcards are usually enough for most purposes, but NOTE:
+         *      - 'Naruto' (wildcard search) will match EXACTLY that character tag. To also match 'Naruto Uzumaki' and 'Uzumaki Naruto' you must enter '*Naruto*'
+         *      - 'Naruto' (regex search) will match all tags containing that word, including 'Naruto Uzumaki's Evil Twin'. For an exact match, enter '^Naruto$'
+         *      - If a name contains apostrophes, wrap it in double quotes: "O'Malley"
+         * (more tips below)
+         * ---------------------------------------------------------------------------------------------------- */
 
         // You want to see one at least one of these relationships/character tags... (case insensitive)
         relationships: ['Eraserhead.*&.*Toshinori', 'Toshinori.*&.*Eraserhead'],
         characters: ['Yagi Toshinori', 'Toshinori Yagi', 'All Might',
-                     'Aizawa Shouta', 'Shouta Aizawa', 'Eraserhead',
-                     'Musashi . Jessie', 'Kojirou . James', 'Nyarth . Team Rocket Meowth', 'Team Rocket Trio',
-                     'Spy.*Team Fortress 2', 'Ishtar'],
+            'Aizawa Shouta', 'Shouta Aizawa', 'Eraserhead',
+            'Musashi . Jessie', 'Kojirou . James', 'Nyarth . Team Rocket Meowth', 'Team Rocket Trio',
+            'Spy.*Team Fortress 2', 'Ishtar'],
 
         relLim: 0, //  ...within the first N relationship tags. (0: ignore relationships)
         charLim: 3, // ...within the first N character tags. (0: ignore characters)
 
-        //----------------------------------------------------------------------------------------------------
+        // ----------------------------------------------------------------------------------------------------
 
         // Relationships/characters you DON'T want to see...
         excludedRelationships: ['Eraserhead.*/.*Toshinori', 'Toshinori.*/.*Eraserhead'],
@@ -62,7 +63,7 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
         xRelLim: 3, //   ...within the first X relationship tags (0: do nothing)
         xCharLim: 1, // ...within the first Y character tags    (0: do nothing)
 
-        /*(⚠ don't use to block tags completely: AO3 savior will be faster ⚠)
+        /* (⚠ don't use to block tags completely: AO3 savior will be faster ⚠)
 
         //----------------------------------------------------------------------------------------------------
 
@@ -79,12 +80,12 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
             xCharLim: 2
         HIDE all fics with OCs in first or second place
 
-        Example 3 (with regex): you want Katara shipfic *except* with Aang, but don't mind if they're in the background*/
+        Example 3 (with regex): you want Katara shipfic *except* with Aang, but don't mind if they're in the background */
         //  relationships: ['(!Aang.*/).*Katara.*(!/.*Aang)']
         /*          charLim: 1 (first ship is Katara/someone)
 */
 
-/*      *** SOME NOTES ON REGEXP AND SEARCH RESULTS *******************************
+        /*      *** SOME NOTES ON REGEXP AND SEARCH RESULTS *******************************
 
         By default, the search matches any string containing the text in quotes:
             "Sherlock" matches "Sherlock (TV)", "Sherlock Holmes" and "Young Sherlock Holmes"
@@ -106,4 +107,4 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
 
     }
 
-})();
+})()

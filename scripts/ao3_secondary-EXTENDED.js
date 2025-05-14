@@ -18,28 +18,36 @@
 Currently active on works/* and tags/* pages. To also enable on user pages, add the following line in the header:
     // @match        http*://archiveofourown.org/users/*
 
-// TODO: list functions and changes from scriptfairy's version
-'------------------------------------------------------------------------------------------------------------------*/
-(function() {
+TO-DOs
+    [ ] list functions and changes from scriptfairy's version
+    [ ] test with "GM_get / GM_set". Would require
+        [ ] a menu (to display and edit saved settings)
+        [ ] pop-up / expansion toggle showing regex hints
+        [ ] option to save settings to .txt file?
+        [ ] button to enable/disable?
+        [ ] maybe add an optional config file: check if config file is loaded, if not then use listed settings?
+    [ ] MAYBE modify to use AO3's fold/message. IF Ao3 class appears, add message to the fold. IF not, proceed as normal.
+'------------------------------------------------------------------------------------------------------------------ */
+(function () {
     'use strict'
 
     // check that config extension is loaded, then pass variables
-    if (!window.secondaryCharAndRelFilter) {throw new Error("⚠ AO3 Secondary tag filter CONFIG not loaded")}
+    if (!window.secondaryCharAndRelFilter) { throw new Error('⚠ AO3 Secondary tag filter CONFIG not loaded') }
     const config = window.secondaryCharAndRelFilter,
-          relLim = config.relLim,
-          charLim = config.charLim,
-          xRelLim = config.xRelLim,
-          xCharLim = config.xCharLim;
+        relLim = config.relLim,
+        charLim = config.charLim,
+        xRelLim = config.xRelLim,
+        xCharLim = config.xCharLim
 
     // validation: remove incorrect values. If no valid characters/relationships are found, exit early
     const relationships = config.relationships.filter(Boolean && isString),
-          characters = config.characters.filter(Boolean && isString),
-          excludedRelationships = config.excludedRelationships.filter(Boolean && isString),
-          excludedCharacters = config.excludedCharacters.filter(Boolean && isString),
-          checkRels = (relationships.length > 0 && relLim > 0),
-          checkChars = (characters.length > 0 && charLim > 0),
-          checkXRels = (excludedRelationships.length > 0 && xRelLim > 0),
-          checkXChars = (excludedCharacters.length > 0 && xCharLim > 0);
+        characters = config.characters.filter(Boolean && isString),
+        excludedRelationships = config.excludedRelationships.filter(Boolean && isString),
+        excludedCharacters = config.excludedCharacters.filter(Boolean && isString),
+        checkRels = (relationships.length > 0 && relLim > 0),
+        checkChars = (characters.length > 0 && charLim > 0),
+        checkXRels = (excludedRelationships.length > 0 && xRelLim > 0),
+        checkXChars = (excludedCharacters.length > 0 && xCharLim > 0)
     if (!checkRels && !checkChars && !checkXRels && !checkXChars) { return }
 
     const delay = config.ao3SaviorIsInstalled ? 20 : 0 // add 20ms delay to prevent conflicts with AO3 savior (which runs after a 15ms delay)
@@ -47,38 +55,37 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
     function runEverything() {
 
         // iterate through works
-        const works = document.querySelectorAll('.work.blurb');
-        for (let i=0; i < works.length; i++) {
+        const works = document.querySelectorAll('.work.blurb')
+        for (let i = 0; i < works.length; i++) {
 
             // If AO3 saviour hid the work, add no further warnings
-            // TODO : consider modifying to use AO3's fold/message. Will it still work when AO3s is not installed? What if it updates?
             if (works[i].classList.contains('ao3-savior-work')) { continue } // go to next work
 
             // Get first n relationships/characters and check if any are in the user settings
-            function getFirstNTags (tagClassString, tagLim, xTagLim) {
+            function getFirstNTags(tagClassString, tagLim, xTagLim) {
                 return [...works[i].querySelectorAll(tagClassString)].slice(0, Math.max(tagLim, xTagLim)).map(tag => tag.textContent)
             }
-            const firstNrels = (checkRels||checkXRels) && getFirstNTags('.relationships', relLim, xRelLim),
-                  firstNchars = (checkChars||checkXChars) && getFirstNTags('.characters', charLim, xCharLim),
-                  relMatch = checkRels && isMatch (firstNrels, relLim, relationships),
-                  charMatch = checkChars && isMatch (firstNchars, charLim, characters),
-                  xRelMatch = checkXRels && isMatch (firstNrels, xRelLim, excludedRelationships),
-                  xCharMatch = checkXChars && isMatch (firstNchars, xCharLim, excludedCharacters);
-             
+            const firstNrels = (checkRels || checkXRels) && getFirstNTags('.relationships', relLim, xRelLim),
+                firstNchars = (checkChars || checkXChars) && getFirstNTags('.characters', charLim, xCharLim),
+                relMatch = checkRels && isMatch (firstNrels, relLim, relationships),
+                charMatch = checkChars && isMatch (firstNchars, charLim, characters),
+                xRelMatch = checkXRels && isMatch (firstNrels, xRelLim, excludedRelationships),
+                xCharMatch = checkXChars && isMatch (firstNchars, xCharLim, excludedCharacters)
+
             // Hide works which don't prioritise your characters/relationships. Add explanation and "show work" button.
             if ((relMatch || charMatch) && !(xRelMatch || xCharMatch)) { continue } // skip if at least one match and no blacklist
-            works[i].classList.add('hiddenwork');
+            works[i].classList.add('hiddenwork')
 
             const note = createNewElement('div', 'hidereasons'),
-                  div1 = createNewElement('div', 'left', 'This work does not prioritize your preferred tags.'),
-                  div2 = createNewElement('div', 'right'),
-                  button = createNewElement('button', 'showwork', 'Show Work');
+                div1 = createNewElement('div', 'left', 'This work does not prioritize your preferred tags.'),
+                div2 = createNewElement('div', 'right'),
+                button = createNewElement('button', 'showwork', 'Show Work')
 
             button.addEventListener(
-                'click', function() {
-                    works[i].classList.remove('hiddenwork');
-                    note.remove();
-                });
+                'click', function () {
+                    works[i].classList.remove('hiddenwork')
+                    note.remove()
+                })
             note.append(div1, div2)
             div2.append(button)
             works[i].after(note)
@@ -102,19 +109,19 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
         }
         li.hiddenwork {
             display:none
-        }`;
+        }`
     document.head.append(newCss)
 
-    function isString (element) {return (typeof element === "string")}
+    function isString(element) { return (typeof element === 'string') }
 
     function createNewElement(elementType, className, textContent) {
-        const el = document.createElement(elementType);
+        const el = document.createElement(elementType)
         el.className = className
         el.textContent = textContent
         return el
     }
 
-    function isMatch (tagList, tagLim, userList) {
+    function isMatch(tagList, tagLim, userList) {
         tagList = tagList.slice(0, tagLim)
         for (let userTag of userList) {
             const pattern = config.useRegex ? userTag : wildcardPattern(userTag)
@@ -126,36 +133,13 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
         return false
     }
 
-    // REGEX ALTERNATIVES --------------------------------------------------------------------------------------
     // Format wildcard * search pattern (escaping all other special characters)
-    function wildcardPattern (pattern) {
+    function wildcardPattern(pattern) {
         pattern = '^' + pattern
-                    .replaceAll (/[\.+?^=!:${}()|\]\[\/\\]/g, "\\$&")
-                    .replaceAll ('*','.*')
-                    + '$'
+            .replaceAll (/[.+?^=!:${}()|\][/\\]/g, '\\$&')
+            .replaceAll ('*', '.*')
+            + '$'
         return pattern
     }
 
-    // Match test with wildcards (*) that does NOT use regex. --NIMG
-    function wildcardMatch (userPattern, tagToTest) {
-        userPattern = userPattern.toLowerCase()
-        tagToTest = tagToTest.toLowerCase()
-        let pattern = userPattern.split('*')
-        if (pattern.length <= 1) return (userPattern===tagToTest)
-
-        for (let i = 0, pos = 0; i < pattern.length; i++) {
-            pos = tagToTest.indexOf(pattern[i], pos) // move to start of matched chunk
-            if (pos < 0) {return false} // no match found
-            pos += pattern[i].length; // move to end of current chunk
-            switch (i) {
-                case 0: // first: always matches if it's a wildcard, else can fail
-                    if (pattern[i].length > 0 && pattern[i].length != pos) {return false}
-                    break;
-                case pattern.length - 1: // last: always matches if it's a wildcard, else can fail
-                    if (pattern[i].length > 0 && tagToTest.length != pos) {return false}
-            }
-        }
-        return true
-    }
-
-})();
+})()
