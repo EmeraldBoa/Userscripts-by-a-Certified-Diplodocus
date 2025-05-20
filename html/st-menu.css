@@ -1,0 +1,182 @@
+.st-menu {
+    font-family: "Lucida Grande", "Lucida Sans Unicode", Verdana, Helvetica, sans-serif; /*DELETE FOR AO3*/
+    font-size: 0.8em;
+
+    & h3, h4 {
+        margin: unset;
+        font-family: Georgia, serif;
+    }
+    & section {
+        padding: 2px;
+        &.wrap {
+            border-bottom:solid 2px firebrick;
+            min-width: fit-content;
+            margin-bottom: 7px;
+        };
+        &.tag-block {
+            display: block;
+        };
+        &.bottom {
+            & button {
+                box-sizing: border-box;
+                width: 100%;
+                height: auto;
+            }
+            & fieldset {
+                box-sizing: border-box;
+                width: 100%;
+                box-shadow: inset 0 1px 2px #ccc;
+                background-color: rgb(251, 241, 231);
+                & legend {
+                    font-weight:bold;
+                    font-family: Georgia, serif;
+                }
+            }
+        }
+    }
+    & div {
+        margin:4px;
+    }
+    & button {
+        margin: 2px;
+        min-width: max-content; /*keep text on one line*/
+    }
+    
+    /* INITIAL FILTER MENU */
+    &.st-filters {
+        background-color: antiquewhite;
+        padding: 0.4em;
+        & h4 {
+            display: inline-block;
+        }
+    }
+    & textarea:read-only, input[type=text]:read-only {
+        background-color:rgb(251, 241, 231);
+    }
+    & .tag-list {
+        resize: vertical;
+        width: 100%;
+        box-sizing: border-box;
+        min-height: unset;
+        padding: 0.3em;
+        font-family: monospace;
+    }
+    & input[type="checkbox"], input[type="radio"] {
+        vertical-align: text-top /*align with label text*/
+    }
+    & label {
+        white-space: nowrap;
+    }
+    & .within {
+        text-align: right;
+    }
+    & .tag-lim {
+        width: 1.1em;
+    }
+    & .question {
+        padding:0 6px;
+        margin: 0 1px;
+        border: 1px solid;
+        border-radius: 0.75em;
+        font-size: 0.75em;
+        vertical-align: super;
+        cursor: help;
+        font-family: Georgia, serif;
+        font-weight: bold;
+    }
+
+    /**/
+
+    &.popup {
+        display: grid;
+        row-gap: 0.3em;
+        padding: 0.8em;
+        &.config {
+            background-color:azure;
+            max-width: 17em;
+        }
+        &.info {
+            font-size: 1em;
+            background-color:floralwhite;
+            max-width: 50em;
+            height: 650px;
+        }
+        & .head {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: solid 2px firebrick;
+        }
+        & section:not(.head) > h3 {
+            display: block;
+            border-bottom: solid 2px firebrick;
+        }
+        & button {
+            &.exit-btn {
+                width: 1.5em;
+                vertical-align: top;
+                &:hover {
+                    color: firebrick;
+                }
+            }
+        }
+        & .underline {
+            text-decoration: underline;
+        }
+        & .search-term {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        & .scrollable {
+            overflow: auto;
+        }
+        & li > table {
+            margin: 0.5em 0; /*spacing around table*/
+        }
+        & table {
+            table-layout: fixed;
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8em;
+            & th, td {
+                padding: 0.4em;
+                &.narrow {
+                    width: 1em;
+                }
+            }
+            &.match-exclude{
+                border: 1px solid cadetblue;
+                thead {
+                    background-color: lightblue;
+                    & th:nth-child(1), th:nth-child(2) { width: 8em; }
+                }
+                & td:nth-child(1), td:nth-child(2)  {
+                    font-family: 'Courier New', Courier, monospace;
+                    font-size: 0.9rem;
+                    text-align: center;
+                }
+            }
+            &:not(.match-exclude){
+                border: 1px solid firebrick;
+                & thead {
+                    background-color: lightpink;
+                    & th:nth-child(2) { width: 7em;}
+                    & th:nth-child(4) { width: 1em;}
+                }
+                & th + th, td + td {
+                    border-left: 1px solid palevioletred;
+                }
+                & td:nth-child(2), td:nth-child(3), td:nth-child(4) {
+                    font-family: 'Courier New', Courier, monospace;
+                    font-size: 0.9rem;
+                }
+                & td:nth-child(4) {
+                    text-align: center;
+                }
+            }
+        }
+    }
+
+}
+/* use AO3's own CSS for the checkboxes: 
+.filters.indicator
+.filters.indicator.exclude
+*/

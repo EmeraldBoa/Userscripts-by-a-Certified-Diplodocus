@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>test menu</title>
+    <link rel="stylesheet" href="st-menu.css">
+</head>
+
+<body>
+    <fieldset class="st-menu st-filters">
+        <legend>Tag priority filters:</legend>
+        <section class="wrap">
+            <div class="head">
+                <h4>Include</h4> (at least one)
+                <button type="button" class="question">?</button>
+            </div>
+            <section class="tag-block include characters">
+                <label>
+                    <input type="checkbox">
+                    <span class="indicator" aria-hidden="true"></span>
+                    <span>Characters</span>
+                </label>
+                <textarea class="tag-list" rows="5" placeholder="Gilgamesh, Enkidu"></textarea>
+                <div class="within">...within the first <input type="text" class="tag-lim"> tags</div>
+            </section>
+            <section class="tag-block include relationships">
+                <label>
+                    <input type="checkbox">
+                    <span class="indicator" aria-hidden="true"></span>
+                    <span>Relationships</span>
+                </label>
+                <textarea class="tag-list" rows="5" placeholder="Gilgamesh*Enkidu, Enkidu*Gilgamesh"></textarea>
+                <div class="within">...within the first <input type="text" class="tag-lim"> tags</div>
+            </section>
+        </section>
+        <section class="wrap">
+            <div class="head">
+                <h4>Exclude</h4>
+                <button type="button" class="question">?</button>
+            </div>
+            <section class="tag-block exclude characters">
+                <label>
+                    <input type="checkbox">
+                    <span class="indicator" aria-hidden="true"></span>
+                    <span>Characters</span>
+                </label>
+                <textarea class="tag-list" rows="5" readonly aria-readonly="true"></textarea>
+                <div class="within">...within the first <input type="text" class="tag-lim"> tags</div>
+            </section>
+            <section class="tag-block exclude relationships">
+                <label>
+                    <input type="checkbox">
+                    <span class="indicator" aria-hidden="true"></span>
+                    <span>Relationships</span>
+                </label>
+                <textarea class="tag-list" rows="5" placeholder="*Ishtar*"></textarea>
+                <div class="within">...within the first <input type="text" class="tag-lim"> tags</div>
+            </section>
+        </section>
+        <section class="bottom">
+            <fieldset>
+                <legend>
+                    Format
+                    <button type="button" class="question">?</button>
+                </legend>
+                <label>
+                    <input type="radio" name="format" id="wc" value="wc" checked>
+                    <span class="indicator" aria-hidden="true"></span>
+                    <span>wildcards (*)</span>
+                </label>
+                <label>
+                    <input type="radio" name="format" id="rx" value="rx">
+                    <span class="indicator" aria-hidden="true"></span>
+                    <span>regex</span>
+                </label>
+            </fieldset>
+            <button type="button">⚙️ Config, 💾 Imp/Export </button>
+            <button type="button">🡆 Apply filters</button>
+        </section>
+    </fieldset>
+
+    <div class="st-menu popup config">
+        <section class="head">
+            <h3>Config</h3>
+            <button type="button" class="exit-btn">x</button>
+
+        </section>
+        <label>
+            <input type="checkbox">
+            AO3 saviour is installed
+        </label>
+        <button type="button">💾 Export tag filters to file</button>
+        <button type="button"><span class="underline">🠋</span> Import saved tag filters</button>
+    </div>
+
+    <div class="st-menu popup info">
+        <section class="head">
+            <h3>Tag priority filters</h3>
+            <button type="button" class="exit-btn">x</button>
+        </section>
+        <div class="scrollable">
+            <section>
+                <p>The script cannot use AO3's tag system, but instead <strong>matches
+                    the literal tag text</strong>. <br>
+                    Add synonyms to your filters where necessary
+                    (e.g. <span class="search-term">Naruto Uzumaki, Uzumaki Naruto</span>)</p>
+                <ul>
+                    <li>Only character and relationship tags are checked.</li>
+                    <li>Comma = OR
+                        <table class="match-exclude">
+                            <thead>
+                                <tr>
+                                    <th scope="col"></th>
+                                    <th scope="col">search term(s)</th>
+                                    <th scope="col" class="narrow">N</th>
+                                    <th scope="col">result</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>include characters</td>
+                                    <td>enkidu, gilgamesh</td>
+                                    <td>4</td>
+                                    <td>SHOW fics with "Enkidu" OR "Gilgamesh" within the first 4 character tags</td>
+                                </tr>
+                                <tr>
+                                    <td>exclude characters</td>
+                                    <td>enkidu, gilgamesh</td>
+                                    <td>4</td>
+                                    <td>HIDE fics with "Enkidu" OR "Gilgamesh" within the first 4 character tags</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </li>
+                    <li>
+                        Search is case-insensitive and ignores diacritics (a = á, ä, ā), line breaks and extra spaces.
+                        (Characters like ñ, ł, æ, ø, are letters, not diacritics: searching <span class="search-term">Inigo</span> will match "Ínigo" but not
+                        "Íñigo")
+                    </li>
+                </ul>
+                <p>⚠ Don't use this script to block tags completely: <a href="https://greasyfork.org/en/scripts/3579-ao3-savior">AO3 savior</a> does it better.</p>
+            </section>
+            <section>
+                <h3>How to filter</h3>
+                <p>Choose between <strong>*wildcards</strong> (default) or <strong>regex</strong> (more flexible, for advanced users). <br>
+                    Wildcards are enough for most purposes, but NOTE:</p>
+                <table class="match-exclude">
+                    <thead>
+                        <tr>
+                            <th scope="col">wildcard (*)</th>
+                            <th scope="col">RegExp</th>
+                            <th scope="col">matches</th>
+                            <th scope="col">excludes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>naruto</td>
+                            <td>^naruto$</td>
+                            <td>Naruto</td>
+                            <td>Naruto Uzumaki, Uzumaki Naruto, Naruto's Evil Clone</td>
+                        </tr>
+                        <tr>
+                            <td>*naruto*</td>
+                            <td>naruto</td>
+                            <td>Naruto Uzumaki, Uzumaki Naruto, Naruto, Naruto's Evil Clone</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>Regex may be useful for...</p>
+                <ul>
+                    <li>alternate spellings: <span class="search-term">[RL]i[zs]a Hawkeye</span> ➜ Riza/Risa/Liza/Lisa
+                        Hawkeye
+                    </li>
+                    <li>limiting options: <span class="search-term">(Arnold|Ace).*Rimmer</span> ➜ don't match John or Harold
+                        Rimmer</li>
+                    <li>more control: <span class="search-term">Naruto.*(!clone)</span> ➜ match Naruto but not his clone
+                    </li>
+                </ul>
+                <p>See <a href="https://regexr.com/">https://regexr.com/</a> for more options.</p>
+                <h5>Example 1 (with *wildcards)</h5>
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">We want…</th>
+                            <th scope="col">setting</th>
+                            <th scope="col">search term(s)</th>
+                            <th scope="col">N</th>
+                            <th scope="col">matches</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Fics with Leia in the first 3 character tags</td>
+                            <td>Include Characters</td>
+                            <td>leia*</td>
+                            <td>3</td>
+                            <td>Leia, Leia Organa, Leia Skywalker</td>
+                        </tr>
+                        <tr>
+                            <td>…that don't have Luke or Han as the main characters (it's fine if they're in second place)
+                            </td>
+                            <td>Exclude Characters</td>
+                            <td>luke skywalker, han solo</td>
+                            <td>4</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <h5>Example 2 (with regex): <br>
+                    you don't want to read fics focusing on original
+                    characters, but don't mind if they're part of the story.</h5>
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">We want…</th>
+                            <th scope="col">setting</th>
+                            <th scope="col">search term(s)</th>
+                            <th scope="col">N</th>
+                            <th scope="col">matches</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>to HIDE fics with OCs in first or second place</td>
+                            <td>Exclude Characters</td>
+                            <td>original.*character, O[FM]?C</td>
+                            <td>1</td>
+                            <td>Original Characters, Original Female Character, OC, OMC…</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <h5>Example 3a (with *wildcards)</h5>
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">We want…</th>
+                            <th scope="col">setting</th>
+                            <th scope="col">search term(s)</th>
+                            <th scope="col">N</th>
+                            <th scope="col">matches</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Katara/... as the first ship</td>
+                            <td>Include Rels.</td>
+                            <td>*/*katara*, *katara*/*</td>
+                            <td>1</td>
+                            <td>Aang / Katara, Katara / Toph, Katara / Zuko...</td>
+                        </tr>
+                        <tr>
+                            <td>...EXCEPT Katara/Aang (okay in the background)</td>
+                            <td>Exclude Rels.</td>
+                            <td>*aang*/*katara, katara*/*aang*</td>
+                            <td>2</td>
+                            <td>Aang / Katara, Katara / Aang</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>Wait! In other fandoms this would work, but Avatar
+                    uses "Kataang", "Zutara", etc. <span class="search-term">"kat*, *ara"</span> would match those but also,
+                    e.g., "<span class="underline">Kat</span>ara &amp; Sokka". <br>
+                    We could list them all, or...
+                </p>
+                <h5>Example 3b (with regex)</h5>
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">We want…</th>
+                            <th scope="col">setting</th>
+                            <th scope="col">search term(s)</th>
+                            <th scope="col">N</th>
+                            <th scope="col">matches</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Katara/... as the first ship </td>
+                            <td>Include Rels.</td>
+                            <td>(!aang).*/.*katara, *katara*/*(!aang), ^kat[a-z]+$</td>
+                            <td>1</td>
+                            <td>as before, but also "Kat..." followed by any letters without spaces.</td>
+                        </tr>
+                        <tr>
+                            <td>...EXCEPT Katara/Aang (fine if it's in the background)</td>
+                            <td>Exclude Rels.</td>
+                            <td>*/*katara*, *katara*/*</td>
+                            <td>2</td>
+                            <td>Aang / Katara, Katara / Aang, Katara / Toph...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+
+    </div>
+
+</body>
+
+</html>
+
+<!--
+TODO:
+[ ] should I have labels separate from checkboxes?
+    Setting up the IDs is such a pain...!
+    (Might be easier when building in JS, though)
+[ ] sort out the various margins & paddings
+    (built on the fly)
+[ ] add "disabled" (unselectable) 
+    or "read-more" (selectable) property to css
+[ ] add error message or icon if the wrong number of tags is selected
+[x] textareas 
+    [ ] which match neighbour (if side-by-side and not squashed in mobile!)
+    https://css-tricks.com/auto-growing-inputs-textareas/    
+    https://stackoverflow.com/questions/69283263/match-the-size-of-two-textarea-elements-when-one-of-them-changes
+[ ] use flexbox for the .head sections instead
+    -->

@@ -1,0 +1,97 @@
+ /*GENERAL AO3 SETTINGS - FOR PREVIEW PURPOSES ONLY*/
+body {
+    font-family: "Lucida Grande", "Lucida Sans Unicode", Verdana, Helvetica, sans-serif;
+}
+h3, h4 {
+    font-family: Georgia, serif;
+}
+
+/*CUSTOM MENU*/
+.st-menu {
+    font-size: 0.8em;
+
+    & h3, h4, dt, dd {
+        margin: unset;
+    }
+    & div {
+        margin:4px;
+    }
+    &.st-filters { /* INITIAL FILTER MENU */
+        background-color: antiquewhite;
+        padding: 0.4em;
+        & h4 {
+            display: inline-block;
+        }
+    }
+    & section {
+        padding: 2px;
+        &.wrap {
+            border-bottom:solid 2px firebrick;
+            min-width: fit-content;
+            margin-bottom: 7px;
+        };
+        &.tag-block {
+            display: block;
+        };
+        &.bottom {
+            & button {
+                box-sizing: border-box;
+                width: 100%;
+                height: auto;
+            }
+            & fieldset {
+                box-sizing: border-box;
+                width: 100%;
+                box-shadow: inset 0 1px 2px #ccc;
+                background-color: rgb(251, 241, 231);
+                & legend { /*FIX : not visible on AO3. Do I want it?*/
+                    font-weight:bold;
+                    font-family: Georgia, serif;
+                }
+            }
+        }
+    }
+    & button {
+        margin: 2px;
+        min-width: max-content; /*keep text on one line*/
+    }
+    & textarea:read-only, input[type=text]:read-only {
+        background-color:rgb(251, 241, 231);
+    }
+    & .tag-list {
+        resize: vertical;
+        width: 100%;
+        box-sizing: border-box;
+        min-height: unset;
+        padding: 0.3em;
+        font-family: monospace;
+    }
+    & input[type="checkbox"], input[type="radio"] {
+        vertical-align: text-top /*align with label text*/
+    }
+    & label {
+        white-space: nowrap;
+    }
+    & .within {
+        text-align: right;
+    }
+    & .tag-lim {
+        width: 1.1em;
+    }
+    & .question {
+        padding:0 6px;
+        margin: 0 1px;
+        border: 1px solid;
+        border-radius: 0.75em;
+        font-size: 0.75em;
+        vertical-align: super;
+        cursor: help;
+        font-family: Georgia, serif;
+        font-weight: bold;
+    }
+
+}
+/* use AO3's own CSS for the checkboxes: 
+.filters.indicator
+.filters.indicator.exclude
+*/

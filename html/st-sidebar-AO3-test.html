@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>test menu</title>
+    <link rel="stylesheet" href="st-sidebar-AO3-test.css">
+</head>
+
+<body>
+    <fieldset class="st-menu st-filters">
+        <legend>Tag priority filters:</legend>
+        <dl>
+            <dt class="filter-toggle expanded">
+                <button type="button" class="expander" aria-expanded="true" aria-controls="TBA">
+                    Tag priority filters
+                </button>
+            </dt>
+            <dd>
+                <section class="wrap">
+                    <div class="head">
+                        <h4>Include</h4> (at least one)
+                        <button type="button" class="question">?</button>
+                    </div>
+                    <section class="tag-block include characters">
+                        <label>
+                            <input type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span>Characters</span>
+                        </label>
+                        <textarea class="tag-list" rows="5" placeholder="Gilgamesh, Enkidu"></textarea>
+                        <div class="within">...within the first <input type="text" class="tag-lim"> tags</div>
+                    </section>
+                    <section class="tag-block include relationships">
+                        <label>
+                            <input type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span>Relationships</span>
+                        </label>
+                        <textarea class="tag-list" rows="5" placeholder="Gilgamesh*Enkidu, Enkidu*Gilgamesh"></textarea>
+                        <div class="within">...within the first <input type="text" class="tag-lim"> tags</div>
+                    </section>
+                </section>
+                <section class="wrap">
+                    <div class="head">
+                        <h4>Exclude</h4>
+                        <button type="button" class="question">?</button>
+                    </div>
+                    <section class="tag-block exclude characters">
+                        <label>
+                            <input type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span>Characters</span>
+                        </label>
+                        <textarea class="tag-list" rows="5" readonly aria-readonly="true"></textarea>
+                        <div class="within">...within the first <input type="text" class="tag-lim"> tags</div>
+                    </section>
+                    <section class="tag-block exclude relationships">
+                        <label>
+                            <input type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span>Relationships</span>
+                        </label>
+                        <textarea class="tag-list" rows="5" placeholder="*Ishtar*"></textarea>
+                        <div class="within">...within the first <input type="text" class="tag-lim"> tags</div>
+                    </section>
+                </section>
+                <section class="bottom">
+                    <fieldset>
+                        <legend>
+                            Format
+                            <button type="button" class="question">?</button>
+                        </legend>
+                        <label>
+                            <input type="radio" name="format" id="wc" value="wc" checked>
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span>wildcards (*)</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="format" id="rx" value="rx">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span>regex</span>
+                        </label>
+                    </fieldset>
+                    <button type="button">⚙️ Config, 💾 Imp/Export </button>
+                    <button type="button">🡆 Apply filters</button>
+                </section>
+            </dd>
+        </dl>
+    </fieldset>
+</body>
+
+</html>
+
+<!--
+TODO 
+    [ ] accessibility
+        [ ] what is a landmark?
+-->
