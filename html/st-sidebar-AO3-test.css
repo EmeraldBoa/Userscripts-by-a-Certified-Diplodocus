@@ -5,6 +5,17 @@ body {
 h3, h4 {
     font-family: Georgia, serif;
 }
+input[type=checkbox]:checked + .indicator + span , input[type=radio]:checked + .indicator + span {
+    font-weight: 700;
+}
+legend {
+    display:none;
+}
+.expander {
+	background: url("https://archiveofourown.org/images/arrow-right.gif") left center no-repeat;
+	border: none;
+	padding: 0.25em 0 0.25em 14px;
+}
 
 /*CUSTOM MENU*/
 .st-menu {
@@ -14,7 +25,7 @@ h3, h4 {
         margin: unset;
     }
     & div {
-        margin:4px;
+       margin:4px;
     }
     &.st-filters { /* INITIAL FILTER MENU */
         background-color: antiquewhite;
@@ -24,12 +35,7 @@ h3, h4 {
         }
     }
     & section {
-        padding: 2px;
-        &.wrap {
-            border-bottom:solid 2px firebrick;
-            min-width: fit-content;
-            margin-bottom: 7px;
-        };
+        padding: 0px 2px;
         &.tag-block {
             display: block;
         };
@@ -48,8 +54,27 @@ h3, h4 {
                     font-weight:bold;
                     font-family: Georgia, serif;
                 }
+                & .question {
+                    width: unset;
+                    font-size: 1em;
+                    vertical-align:text-top;
+                    float: right;
+                }
             }
         }
+    }
+    & .filter-toggle.head {
+        display: flex;
+        justify-content: space-between;
+    }
+    & #st-filter-toggle {
+        width:2.5em;
+    }
+    & dt.collapsed + dd.expandable {
+        display: none;
+    }
+    & div.head {
+        border-bottom:solid 2px firebrick;
     }
     & button {
         margin: 2px;
@@ -63,6 +88,7 @@ h3, h4 {
         width: 100%;
         box-sizing: border-box;
         min-height: unset;
+        margin-top: 0.15em;
         padding: 0.3em;
         font-family: monospace;
     }
@@ -79,7 +105,7 @@ h3, h4 {
         width: 1.1em;
     }
     & .question {
-        padding:0 6px;
+        padding:0 0.425em;
         margin: 0 1px;
         border: 1px solid;
         border-radius: 0.75em;

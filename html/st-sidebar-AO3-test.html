@@ -10,12 +10,13 @@
     <fieldset class="st-menu st-filters">
         <legend>Tag priority filters:</legend>
         <dl>
-            <dt class="filter-toggle expanded">
+            <dt class="filter-toggle head expanded"> <!--or collapsed-->
                 <button type="button" class="expander" aria-expanded="true" aria-controls="TBA">
                     Tag priority filters
                 </button>
+                <button type="button" id="st-filter-toggle" class="current" aria-pressed="true">On</button>
             </dt>
-            <dd>
+            <dd id="ao3pf-menu-content" class="expandable">
                 <section class="wrap">
                     <div class="head">
                         <h4>Include</h4> (at least one)
@@ -68,7 +69,6 @@
                     <fieldset>
                         <legend>
                             Format
-                            <button type="button" class="question">?</button>
                         </legend>
                         <label>
                             <input type="radio" name="format" id="wc" value="wc" checked>
@@ -80,6 +80,7 @@
                             <span class="indicator" aria-hidden="true"></span>
                             <span>regex</span>
                         </label>
+                        <button type="button" class="question">?</button>
                     </fieldset>
                     <button type="button">⚙️ Config, 💾 Imp/Export </button>
                     <button type="button">🡆 Apply filters</button>
@@ -95,4 +96,6 @@
 TODO 
     [ ] accessibility
         [ ] what is a landmark?
+        [ ] aria-hidden: wrap emojis, etc in a span with aria-hidden="true" to keep them from being announced by screen readers
+        [ ] aria-label: replace (I think) button content
 -->
