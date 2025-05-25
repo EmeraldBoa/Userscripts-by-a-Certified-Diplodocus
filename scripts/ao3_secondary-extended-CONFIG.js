@@ -24,6 +24,37 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
 
 (function () {
     'use strict'
+    class tagSet {
+        constructor(arrTags, lim) {
+            this.tagList = arrTags
+            this.lim = lim
+        }
+    }
+    window.shortConfig = {
+        characters: {
+            include: new tagSet(
+                ['Yagi Toshinori', 'Toshinori Yagi', 'All Might',
+                    'Aizawa Shouta', 'Shouta Aizawa', 'Eraserhead',
+                    'Musashi . Jessie', 'Kojirou . James', 'Nyarth . Team Rocket Meowth', 'Team Rocket Trio',
+                    'Spy.*Team Fortress 2', 'Ishtar'],
+                3
+            ),
+            exclude: new tagSet(
+                ['Izuku', 'Bakugou'],
+                1
+            ),
+        },
+        relationships: {
+            include: new tagSet(
+                ['Eraserhead.*&.*Toshinori', 'Toshinori.*&.*Eraserhead'],
+                0
+            ),
+            exclude: new tagSet(
+                ['Eraserhead.*/.*Toshinori', 'Toshinori.*/.*Eraserhead'],
+                3
+            ),
+        },
+    }
 
     window.secondaryCharAndRelFilter = {
 

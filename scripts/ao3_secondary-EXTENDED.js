@@ -20,13 +20,21 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
 
 TO-DOs
     [ ] list functions and changes from scriptfairy's version
-    [ ] test with "GM_get / GM_set". Would require
-        [ ] a menu (to display and edit saved settings)
+    [ ] modify to use AO3's fold/message. IF Ao3 class appears, add message to the fold. IF not, proceed as normal.
+    [ ] handle diacritics
+https://stackoverflow.com/questions/990904/remove-accents-diacritics-in-a-string-in-javascript/37511463#37511463
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/normalize
+https://www.davidbcalhoun.com/2019/matching-accented-strings-in-javascript/
+    [ ] test with "GM_get / GM_set". Would require [x] means "done in HTML"
+        [x] a menu (to display and edit saved settings)
         [ ] pop-up / expansion toggle showing regex hints
-        [ ] option to save settings to .txt file?
         [ ] button to enable/disable?
-        [ ] maybe add an optional config file: check if config file is loaded, if not then use listed settings?
-    [ ] MAYBE modify to use AO3's fold/message. IF Ao3 class appears, add message to the fold. IF not, proceed as normal.
+        [x] "apply" (re-run the script)
+        [x] option to save settings to .txt file?
+            IF I make it an extension (which I'd have to, to save the files, I think), then
+            [ ] save current settings to extension
+            [ ] dropdown to choose between saved settings
+
 '------------------------------------------------------------------------------------------------------------------ */
 (function () {
     'use strict'
