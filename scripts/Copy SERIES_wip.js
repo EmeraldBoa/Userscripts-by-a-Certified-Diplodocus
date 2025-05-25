@@ -1,13 +1,18 @@
 // ==UserScript==
 // @name         📋 Copy SERIES
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.2
+// @version      1.2.1
 // @description  copies story data from AO3 for pasting into MS Access
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/series/*
 // @icon         data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>
 // @grant        GM_addStyle
 // ==/UserScript==
+
+/* TODOs
+    [ ] tidy cleanup functions
+    [ ] untangle formatting function (nested loop)
+*/
 
 (function () {
     'use strict'
@@ -108,11 +113,13 @@
 
     function stringifyMultiple() { // Finally works! turn this into a nested helper function
         const stringifiedObj = {}
-        Object.entries(storyCollection).forEach(([k, story]) => {stringifiedObj[k] = propertiesAndValues(
-            formatForAccess(story, 'Description', 'Notes', 'Summary'),
-            '=',
-            '; '
-        )})
+        Object.entries(storyCollection).forEach(([k, story]) => {
+            stringifiedObj[k] = propertiesAndValues(
+                formatForAccess(story, 'Description', 'Notes', 'Summary'),
+                '=',
+                '; '
+            )
+        })
         return propertiesAndValues(stringifiedObj, ' = {', '};\n\n') + '};'
     }
 
@@ -164,7 +171,6 @@
         }, duration)
     }
     // -- CLEANUP (from CopyStoryData) -----------------------------
-
 
     // AO3 chapter format is "3/?", "31/31", "3/10"...
     // input: "n/m" where n is a number. output: boolean

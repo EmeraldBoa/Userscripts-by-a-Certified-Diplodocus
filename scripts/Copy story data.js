@@ -249,8 +249,9 @@ DONE
             .replaceAll(/<([/]?)i>/gi, '<$1em>') //                 - i to em
             .replaceAll(/<([/]?)div>/gi, '<$1p>') //                - div to p
             .replaceAll(/<br\s*[/]?>/gi, '</p><p>') //              - br to p // HACK: keep an eye on this one
+            .replaceAll('&nbsp;', ' ') //                           - nbsp; replacement
+            .replaceAll(/(\s+)(<\/p>)|(<p>)\s+/gi, '$1$2') //       - no white space around paragraphs (do I need this?)
             .replaceAll(/(<p>){2,}|(<[/]p>){2,}/gi, '$1$2') //      - discard wrappers (<p><p>, </p></p>)
-            .replaceAll(/\s+(<\/p>)|(<p>)\s+/gi, '$1$2') //         - no white space around paragraphs (do I need this?)
             .replaceAll(/(<p><\/p>){2,}/gi, '<p></p>') //           - max one empty paragraph
             .replaceAll(/^<p><\/p>|<p><\/p>$/gi, '') //             - delete blank start/end paragraphs
     }
