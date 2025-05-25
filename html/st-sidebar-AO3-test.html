@@ -4,68 +4,76 @@
 <head>
     <title>test menu</title>
     <link rel="stylesheet" href="st-sidebar-AO3-test.css">
+    <link rel="script" href="st-menu.js">
 </head>
 
 <body>
+    <h3 id="tpf-menu-header" class="landmark">Tag priority</h3>
     <fieldset class="st-menu st-filters">
-        <legend>Tag priority filters:</legend>
+        <legend>Tag priority:</legend> <!--is this redundant?-->
         <dl>
-            <dt class="filter-toggle head expanded"> <!--or collapsed-->
-                <button type="button" class="expander" aria-expanded="true" aria-controls="TBA">
-                    Tag priority filters
+            <dt class="filter-toggle head expanded"> <!--default to collapsed-->
+                <button type="button" class="expander" aria-expanded="false" aria-controls="ao3pf-menu-content">
+                    Tag priority
                 </button>
                 <button type="button" id="st-filter-toggle" class="current" aria-pressed="true">On</button>
             </dt>
             <dd id="ao3pf-menu-content" class="expandable">
-                <section class="wrap">
+                <section class="wrap" aria-describedby="tpf-header-include">
                     <div class="head">
-                        <h4>Include</h4> (at least one)
-                        <button type="button" class="question">?</button>
+                        <h4 id="tpf-header-include">Include</h4> (at least one)
+                        <button type="button" class="question" aria-label="help">?</button>
                     </div>
                     <section class="tag-block include characters">
-                        <label>
+                        <label id="tpf-include-chars">
                             <input type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
-                            <span>Characters</span>
+                            <span id="block-include-chars"><span class="landmark">Include </span>Characters</span>
                         </label>
-                        <textarea class="tag-list" rows="5" placeholder="Gilgamesh, Enkidu"></textarea>
-                        <div class="within">...within the first <input type="text" class="tag-lim"> tags</div>
+                        <textarea class="tag-list" rows="5" autocomplete="off" autocapitalize="off" spellcheck="false"
+                            placeholder="Gilgamesh, Enkidu"></textarea>
+                        <label class="within">...within the first <input type="text" class="tag-lim"> tags</label>
                     </section>
                     <section class="tag-block include relationships">
                         <label>
                             <input type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
-                            <span>Relationships</span>
+                            <span><span class="landmark">Include </span>Relationships</span>
                         </label>
-                        <textarea class="tag-list" rows="5" placeholder="Gilgamesh*Enkidu, Enkidu*Gilgamesh"></textarea>
-                        <div class="within">...within the first <input type="text" class="tag-lim"> tags</div>
+                        <textarea class="tag-list" rows="5" autocomplete="off" autocapitalize="off" spellcheck="false"
+                            placeholder="Gilgamesh*Enkidu, Enkidu*Gilgamesh"></textarea>
+                        <label class="within">...within the first <input type="text" class="tag-lim"> tags</label>
                     </section>
                 </section>
-                <section class="wrap">
+                <section class="wrap" aria-describedby="tpf-header-exclude">
                     <div class="head">
-                        <h4>Exclude</h4>
-                        <button type="button" class="question">?</button>
+                        <h4 id="tpf-header-exclude">Exclude</h4>
+                        <button type="button" class="question" aria-label="help">?</button>
                     </div>
                     <section class="tag-block exclude characters">
                         <label>
                             <input type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
-                            <span>Characters</span>
+                            <span><span class="landmark">Exclude </span>Characters</span>
                         </label>
-                        <textarea class="tag-list" rows="5" readonly aria-readonly="true"></textarea>
-                        <div class="within">...within the first <input type="text" class="tag-lim"> tags</div>
+                        <textarea class="tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                            spellcheck="false"></textarea>
+                        <label class="within">...within the first <input type="text" class="tag-lim" aria-label="N">
+                            tags</label>
                     </section>
                     <section class="tag-block exclude relationships">
                         <label>
                             <input type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
-                            <span>Relationships</span>
+                            <span><span class="landmark">Exclude </span>Relationships</span>
                         </label>
-                        <textarea class="tag-list" rows="5" placeholder="*Ishtar*"></textarea>
-                        <div class="within">...within the first <input type="text" class="tag-lim"> tags</div>
+                        <textarea class="tag-list" rows="5" autocomplete="off" autocapitalize="off" spellcheck="false"
+                            placeholder="*Ishtar*"></textarea>
+                        <label class="within">...within the first <input type="text" class="tag-lim"> tags</label>
                     </section>
                 </section>
-                <section class="bottom">
+                <section class="settings" aria-describedby="tpf-header-settings">
+                    <h3 id="tpf-header-settings" class="landmark">Settings</h3>
                     <fieldset>
                         <legend>
                             Format
@@ -80,10 +88,15 @@
                             <span class="indicator" aria-hidden="true"></span>
                             <span>regex</span>
                         </label>
-                        <button type="button" class="question">?</button>
+                        <button type="button" class="question" aria-label="help">?</button>
                     </fieldset>
-                    <button type="button">⚙️ Config, 💾 Imp/Export </button>
-                    <button type="button">🡆 Apply filters</button>
+                    <div class="actions">
+                        <button type="button" aria-label="Config, Import/Export">⚙️ Config, 💾 Imp/Export</button>
+                    </div>
+                </section>
+                <section class="actions" aria-describedby="tpf-header-submit">
+                    <h3 id="tpf-header-submit" class="landmark">Submit</h3>
+                    <button id="tpf-apply" type="button" aria-label="Apply filters">🡆 Apply filters</button>
                 </section>
             </dd>
         </dl>
@@ -94,8 +107,18 @@
 
 <!--
 TODO 
-    [ ] accessibility
-        [ ] what is a landmark?
-        [ ] aria-hidden: wrap emojis, etc in a span with aria-hidden="true" to keep them from being announced by screen readers
-        [ ] aria-label: replace (I think) button content
+    [x] aria-expanded in html and js (collapse control)
+    [-] add accessibility label to the toggle button:
+    "priority filters are " + (button text) "on/off"
+    [x] link headers to sections
+    [x] label the '?' button
+    [-] .bottom section to div?
+    [x] hide emojis from screen readers (aria-hidden="true" or aria-label)
+    [x] landmark classes: WHAT ARE THEY?
+
+--FIXME--: when I add this before "characters" and "relationships", the CSS rule
+no longer applies, so they aren't bolded on check:
+<span class="landmark">Include</span>
+<span class="landmark">Exclude</span>
+[x] fixed!
 -->
