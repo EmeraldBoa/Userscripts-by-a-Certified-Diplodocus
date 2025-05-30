@@ -5,7 +5,7 @@ body {
 h3, h4 {
     font-family: Georgia, serif;
 }
-.st-filters h4 {
+.tpf__filters h4 {
     display: inline;
     font-weight: 700;
 }
@@ -34,9 +34,13 @@ legend {
 .actions button:hover {
     color: #900;
 }
+.footnote {
+	font-size: 0.75em;
+	float: right;
+}
 
 /*CUSTOM MENU*/
-.st-menu {
+.tpf__menu {
     font-size: 0.9em;
 
     & h3, h4, dt, dd {
@@ -48,18 +52,18 @@ legend {
 
     /* SIDEBAR MENU */
 
-    &.st-filters {
+    &.tpf__filters {
         background-color: antiquewhite;
         padding: 0.643em;
     }
 
-    & .filter-toggle.head {
+    & .tpf__filter-head {
         display: flex;
         justify-content: space-between;
         & .expander {
             font-size: 1.2em;
         }
-        & #st-filter-toggle {
+        & #tpf__filter-toggle {
             width:2.5em;
             &.current {
                 font-weight: 700;
@@ -74,13 +78,13 @@ legend {
     }
 
     & section {
-        &.wrap {
+        &.tpf__wrap {
             margin-top: 1.3em;
         }        
-        &.tag-block, div.head {
+        &.tpf__tag-block, &.tpf__wrap .tpf__head {
             margin-bottom: 0.4em;
         }
-        &.settings {
+        &.tpf__settings {
             margin-top: 2em;
         }
     }
@@ -88,9 +92,9 @@ legend {
     /* MENU ELEMENTS */
 
     & dt.collapsed + dd.expandable {
-        display: none;
+        display: none;        
     }
-    & div.head {
+    & .tpf__wrap > .tpf__head {
         padding: 0.1em;
         border-bottom:solid 2px firebrick;
     }
@@ -98,7 +102,7 @@ legend {
         background-color: #FCF5EB;
         color: #525252;
     }
-    & .tag-list {
+    & .tpf__tag-list {
         resize: vertical;
         width: 100%;
         box-sizing: border-box;
@@ -107,10 +111,10 @@ legend {
         padding: 0.3em;
         font-family: monospace;
     }
-    & .within {
+    & .tpf__within {
         display: block;
         text-align: right;
-        & .tag-lim {
+        & .tpf__tag-lim {
             width: 1.1em;
         }
     }
@@ -145,6 +149,9 @@ legend {
         cursor: help;
         font-family: Georgia, serif;
         font-weight: bold;
+    }
+    & .footnote {
+        padding-right: unset;
     }
 }
 /* use AO3's own CSS for the checkboxes: 

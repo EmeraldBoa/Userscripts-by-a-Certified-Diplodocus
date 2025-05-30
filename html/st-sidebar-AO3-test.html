@@ -8,83 +8,83 @@
 </head>
 
 <body>
-    <h3 id="tpf-menu-header" class="landmark">Tag priority</h3>
-    <fieldset class="st-menu st-filters">
+    <h3 class="landmark heading">Tag priority</h3>
+    <fieldset class="tpf__menu tpf__filters">
         <legend>Tag priority:</legend> <!--is this redundant?-->
         <dl>
-            <dt class="filter-toggle head expanded"> <!--default to collapsed-->
-                <button type="button" class="expander" aria-expanded="false" aria-controls="ao3pf-menu-content">
+            <dt class="tpf__filter-head expanded">
+                <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__menu-content">
                     Tag priority
                 </button>
-                <button type="button" id="st-filter-toggle" class="current" aria-pressed="true">On</button>
+                <button type="button" id="tpf__filter-toggle" class="current" aria-pressed="true">On</button>
             </dt>
-            <dd id="ao3pf-menu-content" class="expandable">
-                <section class="wrap" aria-describedby="tpf-header-include">
-                    <div class="head">
-                        <h4 id="tpf-header-include">Include</h4> (at least one)
+            <dd id="tpf__menu-content" class="expandable">
+                <section class="tpf__wrap" aria-describedby="tpf__header-include">
+                    <div class="tpf__head">
+                        <h4 id="tpf__header-include">Include</h4> (at least one)
                         <button type="button" class="question" aria-label="help">?</button>
                     </div>
-                    <section class="tag-block include characters">
-                        <label id="tpf-include-chars">
+                    <section class="tpf__tag-block include characters">
+                        <label id="tpf__include-chars">
                             <input type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
                             <span id="block-include-chars"><span class="landmark">Include </span>Characters</span>
                         </label>
-                        <textarea class="tag-list" rows="5" autocomplete="off" autocapitalize="off" spellcheck="false"
+                        <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off" spellcheck="false"
                             placeholder="Gilgamesh, Enkidu"></textarea>
-                        <label class="within">...within the first <input type="text" class="tag-lim"> tags</label>
+                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim"> tags</label>
                     </section>
-                    <section class="tag-block include relationships">
+                    <section class="tpf__tag-block include relationships">
                         <label>
                             <input type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
                             <span><span class="landmark">Include </span>Relationships</span>
                         </label>
-                        <textarea class="tag-list" rows="5" autocomplete="off" autocapitalize="off" spellcheck="false"
+                        <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off" spellcheck="false"
                             placeholder="Gilgamesh*Enkidu, Enkidu*Gilgamesh"></textarea>
-                        <label class="within">...within the first <input type="text" class="tag-lim"> tags</label>
+                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim"> tags</label>
                     </section>
                 </section>
-                <section class="wrap" aria-describedby="tpf-header-exclude">
-                    <div class="head">
-                        <h4 id="tpf-header-exclude">Exclude</h4>
+                <section class="tpf__wrap" aria-describedby="tpf__header-exclude">
+                    <div class="tpf__head">
+                        <h4 id="tpf__header-exclude">Exclude</h4>
                         <button type="button" class="question" aria-label="help">?</button>
                     </div>
-                    <section class="tag-block exclude characters">
+                    <section class="tpf__tag-block exclude characters">
                         <label>
                             <input type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
                             <span><span class="landmark">Exclude </span>Characters</span>
                         </label>
-                        <textarea class="tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                        <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
                             spellcheck="false"></textarea>
-                        <label class="within">...within the first <input type="text" class="tag-lim" aria-label="N">
+                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim" aria-label="N">
                             tags</label>
                     </section>
-                    <section class="tag-block exclude relationships">
+                    <section class="tpf__tag-block exclude relationships">
                         <label>
                             <input type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
                             <span><span class="landmark">Exclude </span>Relationships</span>
                         </label>
-                        <textarea class="tag-list" rows="5" autocomplete="off" autocapitalize="off" spellcheck="false"
+                        <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off" spellcheck="false"
                             placeholder="*Ishtar*"></textarea>
-                        <label class="within">...within the first <input type="text" class="tag-lim"> tags</label>
+                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim"> tags</label>
                     </section>
                 </section>
-                <section class="settings" aria-describedby="tpf-header-settings">
-                    <h3 id="tpf-header-settings" class="landmark">Settings</h3>
+                <section class="tpf__settings" aria-describedby="tpf__header-settings">
+                    <h3 id="tpf__header-settings" class="landmark">Settings</h3>
                     <fieldset>
                         <legend>
                             Format
                         </legend>
                         <label>
-                            <input type="radio" name="format" id="wc" value="wc" checked>
+                            <input type="radio" name="format" id="tpf__opt-wildcard" value="wildcard" form="" checked><!--omit from parent form-->
                             <span class="indicator" aria-hidden="true"></span>
                             <span>wildcards (*)</span>
                         </label>
                         <label>
-                            <input type="radio" name="format" id="rx" value="rx">
+                            <input type="radio" name="format" id="tpf__opt-regex" value="regex" form=""><!--omit from parent form-->
                             <span class="indicator" aria-hidden="true"></span>
                             <span>regex</span>
                         </label>
@@ -94,10 +94,13 @@
                         <button type="button" aria-label="Config, Import/Export">⚙️ Config, 💾 Imp/Export</button>
                     </div>
                 </section>
-                <section class="actions" aria-describedby="tpf-header-submit">
-                    <h3 id="tpf-header-submit" class="landmark">Submit</h3>
-                    <button id="tpf-apply" type="button" aria-label="Apply filters">🡆 Apply filters</button>
+                <section class="actions" aria-describedby="tpf__header-submit">
+                    <h3 id="tpf__header-submit" class="landmark">Submit</h3>
+                    <button id="tpf__apply" type="button" aria-label="Apply filters">🡆 Apply filters</button>
                 </section>
+                <p class="footnote">
+                    <a href="#">Clear Filters</a>
+                </p>
             </dd>
         </dl>
     </fieldset>

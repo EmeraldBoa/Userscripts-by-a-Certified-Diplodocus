@@ -1,4 +1,4 @@
-.st-menu {
+.tpf__menu {
     font-family: "Lucida Grande", "Lucida Sans Unicode", Verdana, Helvetica, sans-serif; /*DELETE FOR AO3*/
     font-size: 0.8em;
 
@@ -13,7 +13,7 @@
             min-width: fit-content;
             margin-bottom: 7px;
         };
-        &.tag-block {
+        &.tpf__tag-block {
             display: block;
         };
         &.bottom {
@@ -43,7 +43,7 @@
     }
     
     /* INITIAL FILTER MENU */
-    &.st-filters {
+    &.tpf__filters {
         background-color: antiquewhite;
         padding: 0.4em;
         & h4 {
@@ -53,7 +53,7 @@
     & textarea:read-only, input[type=text]:read-only {
         background-color:rgb(251, 241, 231);
     }
-    & .tag-list {
+    & .tpf__tag-list {
         resize: vertical;
         width: 100%;
         box-sizing: border-box;
@@ -67,7 +67,7 @@
     & label {
         white-space: nowrap;
     }
-    & .within {
+    & .tpf__within {
         text-align: right;
     }
     & .tag-lim {

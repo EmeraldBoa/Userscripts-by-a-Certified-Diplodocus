@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AO3: Priority tag filter
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.1.0
+// @version      1.1.1
 // @description  Hide work if chosen tags are late in sequence, or if blacklisted tags are early
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/works*
@@ -47,10 +47,12 @@ TO DO                                                                           
     [x] run existing code to apply filters
         [x] use apply button to apply/remove filters (now works when all filters are deselected)
         [ ] check/enable toggle button
-        [ ] add "clear filters" button
+        [ ] toggle button needs to work with "apply" (prevent user from applying filter when filters are hidden)
+        [x] add "clear filters" button
         [ ] add "apply" button at top (MAYBE, see below option)
         [ ] split to its own form (MAYBE - needs to work with AO3)
           reason: solve issue where "return" submits AO3's filters and reloads the page!
+            looks like it won't work (absolute positioning - don't think I can put a form element above it)
     [ ] redo "hider" CSS (maybe to match AO3sav folding)
         [ ] add AO3sav timer to settings
     [ ] save/load with GM_get and GM_set
@@ -58,10 +60,13 @@ TO DO                                                                           
         [ ] config popup > apply
         [ ] info popup
     [ ] add error messages for incorrect inputs (popup? in menu?)
+    [ ] todo: test what happens if I hit "clear filters" in the second form:
+        does it clear the priority form? (could affect the GM_get/set)
 
 '------------------------------------------------------------------------------------------------------------------ */
 (function () {
     'use strict'
+    const enableVerboseLogging = true // set to 'true' for debugging purposes
     const $ = document.querySelector.bind(document) // shorthand for readability
     const $$ = document.querySelectorAll.bind(document)
 
@@ -159,6 +164,9 @@ TO DO                                                                           
                         <h3 id="tpf__header-submit" class="landmark">Submit</h3>
                         <button id="tpf__apply" type="button" aria-label="Apply filters">🡆 Apply filters</button>
                     </section>
+                    <p class="footnote">
+                        <a href="#">Clear Filters</a>
+                    </p>
                 </dd>
             </dl>
         </fieldset>`
@@ -195,6 +203,7 @@ TO DO                                                                           
     class tagBlock { // set elements, get values. If the checkbox is unselected, disable the other fields.
         constructor(includeOrExclude, tagType) {
             const tagBlock = $(`.tpf__tag-block.${includeOrExclude}.${tagType}`)
+            this.defaultMatchResult = (includeOrExclude === 'include')// match = true for includes, match = false for excludes
             this.checkbox = tagBlock.querySelector('input[type=checkbox]')
             this.filterTextarea = tagBlock.querySelector('.tpf__tag-list')
             this.tagLimit = tagBlock.querySelector('.tpf__within input')
@@ -208,7 +217,7 @@ TO DO                                                                           
         // TODO better names (for the elements, maybe)
         get check() { return this.checkbox.checked }
         get pattern() { return this.filterTextarea.value.split(',').map(s => s.trim()) } // TODO clean up line breaks. returns array
-        get tagLim() { return this.tagLimit.value.trim() }// TODO validate numbers (and limit?)
+        get tagLim() { return this.tagLimit.value.trim() } // TODO validate numbers (and limit?)
 
         get isValid() { return this.pattern.length && this.tagLim.length } // ok to save
         get checkTags() { return this.check && this.isValid } // ok to commit
@@ -219,7 +228,7 @@ TO DO                                                                           
         excludedCharacters = new tagBlock('exclude', 'characters'),
         excludedRelationships = new tagBlock('exclude', 'relationships')
 
-    // filter on load
+    // filter on load (if any settings are loaded)
     /*
     const ao3SaviorIsInstalled = true // TODO get from settings
     const delay = ao3SaviorIsInstalled ? 20 : 0 // add 20ms delay to prevent conflicts with AO3 savior (which runs after a 15ms delay)
@@ -227,23 +236,44 @@ TO DO                                                                           
     function runEverything() {
     */
 
-    // Buttons
+    const works = $$('.work.blurb')
+    const inputTextFields = $$('.tpf__menu :is(input[type="text"], textarea)'),
+        checkboxFields = $$('.tpf__menu input[type="checkbox"]')
+
+    // apply
     $('#tpf__apply').addEventListener('click', applyFilters)
 
+    // reset filters
+    $('.tpf__menu .footnote a').addEventListener('click', () => { // MAYBE also the format selectors?
+        for (const field of inputTextFields) { field.value = field.defaultValue }
+        for (const field of checkboxFields) {
+            field.checked = false
+            field.dispatchEvent(new Event('change'))
+        }
+        showAllWorks()
+    })
+
+    function showAllWorks() {
+        for (let i = 0; i < works.length; i++) {
+            works[i].classList.toggle('hidden-work', false)
+        }
+    }
+
+    // Hide works which don't prioritise your characters/relationships.
     function applyFilters() {
 
-        // get the variables
+        // If no valid characters/relationships are found, exit early (and reveal all)
+        if (!characters.checkTags && !relationships.checkTags && !excludedCharacters.checkTags && !excludedRelationships.checkTags) {
+            showAllWorks()
+            debugLog('No valid filters found!')
+            return
+        }
+
         const format = $('input[name="format"]:checked').value
 
         // iterate through works
-        const works = $$('.work.blurb')
         for (let i = 0; i < works.length; i++) {
 
-            // validation: If no valid characters/relationships are found, exit early (and reveal all) // MAYBE: make function (reuse with toggle)
-            if (!characters.checkTags && !relationships.checkTags && !excludedCharacters.checkTags && !excludedRelationships.checkTags) {
-                works[i].classList.toggle('hidden-work', false)
-                continue
-            }
             // If AO3 saviour hid the work, add no further warnings
             if (works[i].classList.contains('ao3-savior-work')) { continue } // go to next work
 
@@ -253,8 +283,8 @@ TO DO                                                                           
                 return checkTags && [...works[i].querySelectorAll(tagClassString)]
                     .slice(0, Math.max(includedTagSet.tagLim, excludedTagSet.tagLim)).map(tag => tag.textContent)
             }
-            function matchTags(tagSet, tagsToCheck, defaultTo) {
-                if (!tagSet.checkTags) { return defaultTo } // show work (TRUE) for included tags, hide (FALSE) for excluded
+            function matchTags(tagSet, tagsToCheck) {
+                if (!tagSet.checkTags) { return tagSet.defaultMatchResult } // show work (TRUE) for included tags, hide (FALSE) for excluded
                 tagsToCheck = tagsToCheck.slice(0, tagSet.tagLim)
                 for (let userTag of tagSet.pattern) {
                     const pattern = (format === 'wildcard') ? wildcardPattern(userTag) : userTag
@@ -265,17 +295,20 @@ TO DO                                                                           
                 }
                 return false
             }
-            const firstNrels = getFirstNTags('.relationships', relationships, excludedRelationships),
-                firstNchars = getFirstNTags('.characters', characters, excludedCharacters),
-                relMatch = matchTags (relationships, firstNrels, true),
-                charMatch = matchTags (characters, firstNchars, true),
-                xRelMatch = matchTags (excludedRelationships, firstNrels, false),
-                xCharMatch = matchTags (excludedCharacters, firstNchars, false)
+            const firstNchars = getFirstNTags('.characters', characters, excludedCharacters),
+                firstNrels = getFirstNTags('.relationships', relationships, excludedRelationships),
+                charMatch = matchTags(characters, firstNchars),
+                relMatch = matchTags(relationships, firstNrels),
+                xCharMatch = matchTags(excludedCharacters, firstNchars),
+                xRelMatch = matchTags(excludedRelationships, firstNrels)
 
-            // Hide works which don't prioritise your characters/relationships.
-            const foundMatch = (relMatch || charMatch) && !(xRelMatch || xCharMatch)
+            // Show work if it prioritises your tags and none of the blacklisted tags. Otherwise, hide it.
+            const foundMatch = relMatch && charMatch && !xRelMatch && !xCharMatch
+            debugLog(`foundMatch = ${foundMatch}:
+                relMatch = ${relMatch}, charMatch = ${charMatch}
+                xRelMatch = ${xRelMatch}, xCharMatch = ${xCharMatch}`)
             works[i].classList.toggle('hidden-work', !foundMatch)
-            if (foundMatch) { continue } // skip if at least one match and no blacklist
+            if (foundMatch) { continue }
 
             // Add explanation and "show work" button, if it does not already exist
             if (works[i].nextElementSibling?.classList.contains('hide-reasons')) { continue }
@@ -305,8 +338,8 @@ TO DO                                                                           
     // Format wildcard * search pattern (escaping all other special characters)
     function wildcardPattern(pattern) {
         pattern = '^' + pattern
-            .replaceAll (/[.+?^=!:${}()|\][/\\]/g, '\\$&')
-            .replaceAll ('*', '.*')
+            .replaceAll(/[.+?^=!:${}()|\][/\\]/g, '\\$&')
+            .replaceAll('*', '.*')
             + '$'
         return pattern
     }
@@ -334,121 +367,127 @@ TO DO                                                                           
         }
         .hide-reasons .right {
             float: right;
-        }
-
-    `
+        }`
 
     // eslint-disable-next-line no-undef
     GM_addStyle(newCss + `
-    .tpf__menu {
-        font-size: 0.9em;
+.tpf__menu {
+    font-size: 0.9em;
 
-        & h3, h4, dt, dd {
-            margin: unset;
-        }
-        & button {
-            margin: 0.15em 0;
-            background-color: ;
-        }
+    & h3, h4, dt, dd {
+        margin: unset;
+    }
+    & button {
+        margin: 0.15em 0;
+    }
 
-        /* SIDEBAR MENU */
+    /* SIDEBAR MENU */
 
-        &.tpf__filters {
-            background-color: antiquewhite;
-            padding: 0.643em;
-        }
-        & .tpf__filter-head {
-            display: flex;
-            justify-content: space-between;
-            & .expander {
-                font-size: 1.2em;
-            }
-            & #tpf__filter-toggle {
-                width:2.5em;
-                &.current {
-                    font-weight: 700;
-                }
-                &:hover, &:focus-visible {
-                    color: #900;
-                    border-top: 1px solid #999;
-                    border-left: 1px solid #999;
-                    box-shadow: inset 2px 2px 2px #bbb;
-                }
-            }
-        }
-        & section {
-            &.tpf__wrap {
-                margin-top: 1.3em;
-            }        
-            &.tpf__tag-block, &.tpf__wrap .tpf__head {
-                margin-bottom: 0.4em;
-            }
-            &.tpf__settings {
-                margin-top: 2em;
-            }
-        }
+    &.tpf__filters {
+        background-color: antiquewhite;
+        padding: 0.643em;
+    }
 
-        /* MENU ELEMENTS */
+    & .tpf__filter-head {
+        display: flex;
+        justify-content: space-between;
+        & .expander {
+            font-size: 1.2em;
+        }
+        & #tpf__filter-toggle {
+            width:2.5em;
+            &.current {
+                font-weight: 700;
+            }
+            &:hover, &:focus-visible {
+                color: #900;
+                border-top: 1px solid #999;
+                border-left: 1px solid #999;
+                box-shadow: inset 2px 2px 2px #bbb;
+            }
+        }
+    }
 
-        & dt.collapsed + dd.expandable {
-            display: none;        
+    & section {
+        &.tpf__wrap {
+            margin-top: 1.3em;
+        }        
+        &.tpf__tag-block, &.tpf__wrap .tpf__head {
+            margin-bottom: 0.4em;
         }
-        & .tpf__wrap > .tpf__head {
-            padding: 0.1em;
-            border-bottom:solid 2px firebrick;
+        &.tpf__settings {
+            margin-top: 2em;
         }
-        & textarea:read-only, input[type=text]:read-only {
-            background-color: #FCF5EB;
-            color: #525252;
+    }
+
+    /* MENU ELEMENTS */
+
+    & dt.collapsed + dd.expandable {
+        display: none;        
+    }
+    & .tpf__wrap > .tpf__head {
+        padding: 0.1em;
+        border-bottom:solid 2px firebrick;
+    }
+    & textarea:read-only, input[type=text]:read-only {
+        background-color: #FCF5EB;
+        color: #525252;
+    }
+    & .tpf__tag-list {
+        resize: vertical;
+        width: 100%;
+        box-sizing: border-box;
+        min-height: unset;
+        margin-top: 0.15em;
+        padding: 0.3em;
+        font-family: monospace;
+    }
+    & .tpf__within {
+        display: block;
+        text-align: right;
+        & .tpf__tag-lim {
+            width: 1.1em;
         }
-        & .tpf__tag-list {
-            resize: vertical;
-            width: 100%;
-            box-sizing: border-box;
-            min-height: unset;
-            margin-top: 0.15em;
-            padding: 0.3em;
-            font-family: monospace;
-        }
-        & .tpf__within {
-            display: block;
-            text-align: right;
-            & .tpf__tag-lim {
-                width: 1.1em;
-            }
-        }
-        & fieldset {
-            margin: 0 0 0.6em 0;
-            box-sizing: border-box;
-            width: 100%;
-            box-shadow: inset 0 1px 2px #ccc; /*mimic AO3 textboxes*/
-            background-color: #FCF5EB;
-            & .question {
-                width: unset;
-                font-size: 1em;
-                vertical-align:text-top;
-                float: right;
-            }
-        }
-        & label {
-            white-space: nowrap;
-        }
-        & .actions button {
-            box-sizing: border-box;
-            width: 100%;
-            height: auto;
-        }
+    }
+    & fieldset {
+        margin: 0 0 0.6em 0;
+        box-sizing: border-box;
+        width: 100%;
+        box-shadow: inset 0 1px 2px #ccc; /*mimic AO3 textboxes*/
+        background-color: #FCF5EB;
         & .question {
-            padding:0 0.425em;
-            margin: 0 1px;
-            border: 1px solid;
-            border-radius: 0.75em;
-            font-size: 0.75em;
-            vertical-align: super;
-            cursor: help;
-            font-family: Georgia, serif;
-            font-weight: bold;
+            width: unset;
+            font-size: 1em;
+            vertical-align:text-top;
+            float: right;
         }
-    }`)
+    }
+    & label {
+        white-space: nowrap;
+    }
+    & .actions button {
+        box-sizing: border-box;
+        width: 100%;
+        height: auto;
+    }
+    & .question {
+        padding:0 0.425em;
+        margin: 0 1px;
+        border: 1px solid;
+        border-radius: 0.75em;
+        font-size: 0.75em;
+        vertical-align: super;
+        cursor: help;
+        font-family: Georgia, serif;
+        font-weight: bold;
+    }
+    & .footnote {
+        padding-right: unset;
+    }
+}`)
+
+    function debugLog(input) {
+        if (enableVerboseLogging) { console.log(input) }
+    }
 
 })()
