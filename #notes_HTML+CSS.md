@@ -48,7 +48,8 @@
 
 ### Attributes
 
-* `aria-hidden`: hide an element from screen readers (e.g. emojis)
+* `aria-hidden`: hide an element from screen readers (e.g. emojis). 
+  - Elements which are not rendered (e.g. with `display: none`) are already hidden.
 * `aria-pressed`
 * `aria-label`
   - avoid on `<footer>`, `<section>`, `<article>`, `<header>`, or any `<h_>` elements. [[w3]](https://www.w3.org/TR/using-aria/#label-support)

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AO3: Priority tag filter
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.1.1
+// @version      1.2.0
 // @description  Hide work if chosen tags are late in sequence, or if blacklisted tags are early
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/works*
@@ -46,14 +46,16 @@ TO DO                                                                           
         [ ] get regex/wildcards from radio buttons
     [x] run existing code to apply filters
         [x] use apply button to apply/remove filters (now works when all filters are deselected)
-        [ ] check/enable toggle button
-        [ ] toggle button needs to work with "apply" (prevent user from applying filter when filters are hidden)
+        [x] check/enable toggle button
+        [x] toggle button needs to work with "apply" (prevent user from applying filter when filters are hidden)
         [x] add "clear filters" button
-        [ ] add "apply" button at top (MAYBE, see below option)
+        [x] default fields to locked. // TODO: test if this makes for an intuitive experience.
+                or: select (check) if you click on the textbox. Could be annoying, esp. when it comes to deselects.
+        [ ] add another "apply" button at top (MAYBE)
         [ ] split to its own form (MAYBE - needs to work with AO3)
           reason: solve issue where "return" submits AO3's filters and reloads the page!
             looks like it won't work (absolute positioning - don't think I can put a form element above it)
-    [ ] redo "hider" CSS (maybe to match AO3sav folding)
+    [ ] redo "hider" CSS/html (maybe to match AO3sav folding - hide/unhide)
         [ ] add AO3sav timer to settings
     [ ] save/load with GM_get and GM_set
     [ ] modal popups
@@ -96,9 +98,10 @@ TO DO                                                                           
                                 <span class="indicator" aria-hidden="true"></span>
                                 <span id="block-include-chars"><span class="landmark">Include </span>Characters</span>
                             </label>
-                            <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off" spellcheck="false"
-                                placeholder="Gilgamesh, Enkidu"></textarea>
-                            <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim"> tags</label>
+                            <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                                spellcheck="false" placeholder="Gilgamesh, Enkidu"></textarea>
+                            <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
+                                tags</label>
                         </section>
                         <section class="tpf__tag-block include relationships">
                             <label>
@@ -106,9 +109,10 @@ TO DO                                                                           
                                 <span class="indicator" aria-hidden="true"></span>
                                 <span><span class="landmark">Include </span>Relationships</span>
                             </label>
-                            <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off" spellcheck="false"
-                                placeholder="Gilgamesh*Enkidu, Enkidu*Gilgamesh"></textarea>
-                            <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim"> tags</label>
+                            <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                                spellcheck="false" placeholder="Gilgamesh*Enkidu, Enkidu*Gilgamesh"></textarea>
+                            <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
+                                tags</label>
                         </section>
                     </section>
                     <section class="tpf__wrap" aria-describedby="tpf__header-exclude">
@@ -124,7 +128,8 @@ TO DO                                                                           
                             </label>
                             <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
                                 spellcheck="false"></textarea>
-                            <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim" aria-label="N">
+                            <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim"
+                                    aria-label="N">
                                 tags</label>
                         </section>
                         <section class="tpf__tag-block exclude relationships">
@@ -133,9 +138,10 @@ TO DO                                                                           
                                 <span class="indicator" aria-hidden="true"></span>
                                 <span><span class="landmark">Exclude </span>Relationships</span>
                             </label>
-                            <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off" spellcheck="false"
-                                placeholder="*Ishtar*"></textarea>
-                            <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim"> tags</label>
+                            <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                                spellcheck="false" placeholder="*Ishtar*"></textarea>
+                            <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
+                                tags</label>
                         </section>
                     </section>
                     <section class="tpf__settings" aria-describedby="tpf__header-settings">
@@ -145,12 +151,14 @@ TO DO                                                                           
                                 Format
                             </legend>
                             <label>
-                                <input type="radio" name="format" id="wildcard" value="wildcard" form="" checked><!--omit from parent form-->
+                                <input type="radio" name="format" id="tpf__opt-wildcard" value="wildcard" form=""
+                                    checked><!--omit from parent form-->
                                 <span class="indicator" aria-hidden="true"></span>
                                 <span>wildcards (*)</span>
                             </label>
                             <label>
-                                <input type="radio" name="format" id="regex" value="regex" form=""><!--omit from parent form-->
+                                <input type="radio" name="format" id="tpf__opt-regex" value="regex"
+                                    form=""><!--omit from parent form-->
                                 <span class="indicator" aria-hidden="true"></span>
                                 <span>regex</span>
                             </label>
@@ -161,18 +169,21 @@ TO DO                                                                           
                         </div>
                     </section>
                     <section class="actions" aria-describedby="tpf__header-submit">
-                        <h3 id="tpf__header-submit" class="landmark">Submit</h3>
-                        <button id="tpf__apply" type="button" aria-label="Apply filters">🡆 Apply filters</button>
+                        <h3 id="tpf__header-submit" class="landmark">
+                            Submit
+                        </h3><button id="tpf__apply" type="button" aria-label="Apply filters">
+                            🡆 Apply filters
+                        </button>
                     </section>
                     <p class="footnote">
-                        <a href="#">Clear Filters</a>
+                        <a href="#work-filters">Clear Filters</a>
                     </p>
                 </dd>
             </dl>
         </fieldset>`
     )
 
-    // collapse/expand; set aria-expanded in the expander control
+    // collapse/expand the menu; set aria-expanded in the expander control
     const filterMenu = {
         container: $('.tpf__filter-head'),
         expander: $('.tpf__filter-head .expander'),
@@ -186,11 +197,18 @@ TO DO                                                                           
     })
 
     // toggle on/off (default to 'on')
-    let filterIsOn = true // TODO : remember previous
-    filterMenu.toggle.addEventListener('click', setFilterStatus)
+    let filterIsOn = true // TODO : load & remember previous
+    const workslistContainer = $('ol.work.index.group')
+    filterMenu.toggle.addEventListener('click', toggleFilterStatus)
+    setFilterStatus()
 
-    function setFilterStatus() { // TODO : hide/unhide works
+    function toggleFilterStatus() {
         filterIsOn = !filterIsOn
+        setFilterStatus()
+    }
+
+    function setFilterStatus() {
+        workslistContainer.classList.toggle('show-priority-filters', filterIsOn) // disable the CSS which hides stories
 
         // format the toggle button
         filterMenu.toggle.setAttribute('aria-pressed', filterIsOn)
@@ -199,25 +217,26 @@ TO DO                                                                           
     }
     // --------------------------------------------------------------------------------------------------------
 
-    // GET FILTER ELEMENTS
+    // DEFINE FILTER FIELDS + GETTERS
     class tagBlock { // set elements, get values. If the checkbox is unselected, disable the other fields.
         constructor(includeOrExclude, tagType) {
             const tagBlock = $(`.tpf__tag-block.${includeOrExclude}.${tagType}`)
             this.defaultMatchResult = (includeOrExclude === 'include')// match = true for includes, match = false for excludes
-            this.checkbox = tagBlock.querySelector('input[type=checkbox]')
-            this.filterTextarea = tagBlock.querySelector('.tpf__tag-list')
-            this.tagLimit = tagBlock.querySelector('.tpf__within input')
-            this.checkbox.addEventListener('change', () => {
-                const tagBlockEnabled = this.checkbox.checked
-                this.filterTextarea.readOnly = !tagBlockEnabled
-                this.tagLimit.readOnly = !tagBlockEnabled
+            this.checkboxField = tagBlock.querySelector('input[type=checkbox]')
+            this.textareaField = tagBlock.querySelector('.tpf__tag-list')
+            this.tagLimitField = tagBlock.querySelector('.tpf__within input')
+            this.checkboxField.addEventListener('change', () => {
+                const tagBlockEnabled = this.checkboxField.checked
+                this.textareaField.readOnly = !tagBlockEnabled
+                this.tagLimitField.readOnly = !tagBlockEnabled
             })
         }
 
-        // TODO better names (for the elements, maybe)
-        get check() { return this.checkbox.checked }
-        get pattern() { return this.filterTextarea.value.split(',').map(s => s.trim()) } // TODO clean up line breaks. returns array
-        get tagLim() { return this.tagLimit.value.trim() } // TODO validate numbers (and limit?)
+        applyFormatting() { this.checkboxField.dispatchEvent(new Event('change')) }
+
+        get check() { return this.checkboxField.checked }
+        get pattern() { return this.textareaField.value.split(',').map(s => s.trim()) } // TODO clean up line breaks. returns array
+        get tagLim() { return this.tagLimitField.value.trim() } // TODO validate numbers (and limit?)
 
         get isValid() { return this.pattern.length && this.tagLim.length } // ok to save
         get checkTags() { return this.check && this.isValid } // ok to commit
@@ -229,6 +248,8 @@ TO DO                                                                           
         excludedRelationships = new tagBlock('exclude', 'relationships')
 
     // filter on load (if any settings are loaded)
+    for (const block of [characters, relationships, excludedCharacters, excludedRelationships]) { block.applyFormatting() }
+
     /*
     const ao3SaviorIsInstalled = true // TODO get from settings
     const delay = ao3SaviorIsInstalled ? 20 : 0 // add 20ms delay to prevent conflicts with AO3 savior (which runs after a 15ms delay)
@@ -240,10 +261,10 @@ TO DO                                                                           
     const inputTextFields = $$('.tpf__menu :is(input[type="text"], textarea)'),
         checkboxFields = $$('.tpf__menu input[type="checkbox"]')
 
-    // apply
+    // BUTTON: Apply filters
     $('#tpf__apply').addEventListener('click', applyFilters)
 
-    // reset filters
+    // BUTTON: Clear filters
     $('.tpf__menu .footnote a').addEventListener('click', () => { // MAYBE also the format selectors?
         for (const field of inputTextFields) { field.value = field.defaultValue }
         for (const field of checkboxFields) {
@@ -259,8 +280,10 @@ TO DO                                                                           
         }
     }
 
-    // Hide works which don't prioritise your characters/relationships.
+    // Hide works which don't prioritise your characters/relationships. If filters are off, turn them on.
     function applyFilters() {
+
+        if (!filterIsOn) { toggleFilterStatus() }
 
         // If no valid characters/relationships are found, exit early (and reveal all)
         if (!characters.checkTags && !relationships.checkTags && !excludedCharacters.checkTags && !excludedRelationships.checkTags) {
@@ -317,11 +340,7 @@ TO DO                                                                           
                 div2 = createNewElement('div', 'right'),
                 button = createNewElement('button', 'showwork', 'Show Work')
 
-            button.addEventListener(
-                'click', function () {
-                    works[i].classList.remove('hidden-work')
-                    note.remove()
-                })
+            button.addEventListener('click', () => { works[i].classList.remove('hidden-work') })
             note.append(div1, div2)
             div2.append(button)
             works[i].after(note)
@@ -351,7 +370,7 @@ TO DO                                                                           
         }
         li.hidden-work {
             display: none;
-            background-color: orange;
+            background-color: orange; /* DEV: works that were previously hidden, but are shown when the filter is off. Will be hidden again when toggle is clicked. */
         }
         li.hidden-work + .hide-reasons {
             border: 1px solid rgb(221,221,221);
@@ -367,6 +386,14 @@ TO DO                                                                           
         }
         .hide-reasons .right {
             float: right;
+        }
+        
+        /*--------------------- TOGGLE FILTER OFF: ---------------------*/
+        ol.work.index.group:not(.show-priority-filters) > .hidden-work {
+            display: inherit;
+        }
+        ol.work.index.group:not(.show-priority-filters) > .hide-reasons {
+            display: none;
         }`
 
     // eslint-disable-next-line no-undef
