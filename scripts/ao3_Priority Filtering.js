@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AO3: Priority tag filter
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.2.0
+// @version      1.3.0
 // @description  Hide work if chosen tags are late in sequence, or if blacklisted tags are early
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/works*
@@ -11,7 +11,14 @@
 // @icon         https://raw.githubusercontent.com/EmeraldBoa/Userscripts-by-a-Certified-Diplodocus/refs/heads/main/images/icons/ao3-logo-by-bingeling-GPL.svg
 // @license      GPL-3.0-or-later
 // @grant        GM_addStyle
+// @grant        GM_setValue
+// @grant        GM_setValues
+// @grant        GM_getValue
+// @grant        GM_getValues
+// @grant        GM_deleteValues
 // ==/UserScript==
+
+/* global GM_addStyle, GM_setValue, GM_setValues, GM_getValues, GM_deleteValues */
 
 /* AO3 logo designed by bingeling. Licensed under GNU 2+ https://commons.wikimedia.org/wiki/File:Archive_of_Our_Own_logo.png
 
@@ -25,25 +32,25 @@ TO-DOs (later)
 https://stackoverflow.com/questions/990904/remove-accents-diacritics-in-a-string-in-javascript/37511463#37511463
 https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/normalize
 https://www.davidbcalhoun.com/2019/matching-accented-strings-in-javascript/
-    [ ] test with "GM_get / GM_set". Would require [x] means "done in HTML"
+    [ ] test with "GM_getValue / GM_setValue". Would require [x] means "done in HTML"
         [x] a menu (to display and edit saved settings)
         [x] pop-up / expansion toggle showing regex hints
         [x] button to enable/disable?
         [x] "apply" (re-run the script)
         [x] option to save settings to .txt file?
-            IF I make it an extension (which I'd have to, to save the files, I think), then
-            [ ] save current settings to extension
-            [ ] dropdown to choose between saved settings
+    IF I make it an extension (which I'd have to, to save the files, I think), then
+        [ ] save current settings to extension
+        [ ] dropdown to choose between saved settings
 
 TO DO                                                                                                          (ongoing)
 
     [x] add menu (HTML + CSS + JS for fold/unfold)
         [x] consistent "TPF-..." class names
         [x] default to collapsed
-    [ ] get config info from menu
+    [x] get config info from menu
         [ ] clean & validate
         [ ] (set AO3_isloaded= true for now)
-        [ ] get regex/wildcards from radio buttons
+        [x] get regex/wildcards from radio buttons
     [x] run existing code to apply filters
         [x] use apply button to apply/remove filters (now works when all filters are deselected)
         [x] check/enable toggle button
@@ -56,14 +63,16 @@ TO DO                                                                           
           reason: solve issue where "return" submits AO3's filters and reloads the page!
             looks like it won't work (absolute positioning - don't think I can put a form element above it)
     [ ] redo "hider" CSS/html (maybe to match AO3sav folding - hide/unhide)
-        [ ] add AO3sav timer to settings
-    [ ] save/load with GM_get and GM_set
+        [x] add AO3sav timer to settings
+    [x] save/load with GM_get and GM_set
+        [x] save result of "clear filters"
+        [x] todo: test what happens if I hit "clear filters" in the second form:
+            does it clear the priority form? (could affect the GM_get/set): answer: NO!
+        [ ] remove unused GM_ functions. Test GM_getValues and GM_setValues in ViolentMonkey.
     [ ] modal popups
         [ ] config popup > apply
         [ ] info popup
     [ ] add error messages for incorrect inputs (popup? in menu?)
-    [ ] todo: test what happens if I hit "clear filters" in the second form:
-        does it clear the priority form? (could affect the GM_get/set)
 
 '------------------------------------------------------------------------------------------------------------------ */
 (function () {
@@ -72,7 +81,7 @@ TO DO                                                                           
     const $ = document.querySelector.bind(document) // shorthand for readability
     const $$ = document.querySelectorAll.bind(document)
 
-    // add collapsible menu directly above AO3's filter sidebar
+    // add collapsible menu directly above AO3's filter sidebar. Get DOM objects.
     const filterSidebar = $('#work-filters')
     if (!filterSidebar) { return }
     filterSidebar.insertAdjacentHTML('afterbegin',
@@ -151,8 +160,7 @@ TO DO                                                                           
                                 Format
                             </legend>
                             <label>
-                                <input type="radio" name="format" id="tpf__opt-wildcard" value="wildcard" form=""
-                                    checked><!--omit from parent form-->
+                                <input type="radio" name="format" id="tpf__opt-wildcard" value="wildcard" form=""checked><!--omit from parent form-->
                                 <span class="indicator" aria-hidden="true"></span>
                                 <span>wildcards (*)</span>
                             </label>
@@ -182,22 +190,41 @@ TO DO                                                                           
             </dl>
         </fieldset>`
     )
-
-    // collapse/expand the menu; set aria-expanded in the expander control
     const filterMenu = {
         container: $('.tpf__filter-head'),
         expander: $('.tpf__filter-head .expander'),
         toggle: $('#tpf__filter-toggle'),
     }
+    const works = $$('.work.blurb')
 
-    filterMenu.expander.addEventListener('click', () => {
-        const isExpanded = filterMenu.container.classList.toggle('expanded')
-        filterMenu.container.classList.toggle('collapsed')
-        filterMenu.expander.setAttribute('aria-expanded', isExpanded)
+    // get settings from script storage (default values if not)
+    const stored = GM_getValues({
+        isExpanded: false,
+        filterIsOn: 1,
+        characters: null,
+        relationships: null,
+        excludedCharacters: null,
+        excludedRelationships: null,
+        format: 'regex',
+        ao3SaviorIsInstalled: true,
     })
 
+    // collapse/expand the menu; set aria-expanded in the expander control
+    let isExpanded = stored.isExpanded
+    setExpandedStatus()
+    filterMenu.expander.addEventListener('click', () => {
+        isExpanded = !isExpanded
+        GM_setValue('isExpanded', isExpanded)
+        setExpandedStatus()
+    })
+    function setExpandedStatus() {
+        filterMenu.container.classList.toggle('expanded', isExpanded)
+        filterMenu.container.classList.toggle('collapsed', !isExpanded)
+        filterMenu.expander.setAttribute('aria-expanded', isExpanded)
+    }
+
     // toggle on/off (default to 'on')
-    let filterIsOn = true // TODO : load & remember previous
+    let filterIsOn = stored.filterIsOn
     const workslistContainer = $('ol.work.index.group')
     filterMenu.toggle.addEventListener('click', toggleFilterStatus)
     setFilterStatus()
@@ -208,6 +235,7 @@ TO DO                                                                           
     }
 
     function setFilterStatus() {
+        GM_setValue('filterIsOn', filterIsOn) // store value
         workslistContainer.classList.toggle('show-priority-filters', filterIsOn) // disable the CSS which hides stories
 
         // format the toggle button
@@ -221,7 +249,7 @@ TO DO                                                                           
     class tagBlock { // set elements, get values. If the checkbox is unselected, disable the other fields.
         constructor(includeOrExclude, tagType) {
             const tagBlock = $(`.tpf__tag-block.${includeOrExclude}.${tagType}`)
-            this.defaultMatchResult = (includeOrExclude === 'include')// match = true for includes, match = false for excludes
+            this.defaultMatchResult = (includeOrExclude === 'include') // match = true for includes, match = false for excludes
             this.checkboxField = tagBlock.querySelector('input[type=checkbox]')
             this.textareaField = tagBlock.querySelector('.tpf__tag-list')
             this.tagLimitField = tagBlock.querySelector('.tpf__within input')
@@ -232,7 +260,13 @@ TO DO                                                                           
             })
         }
 
-        applyFormatting() { this.checkboxField.dispatchEvent(new Event('change')) }
+        loadFromStorage(storedVals) {
+            if (!storedVals) { return }
+            this.checkboxField.checked = storedVals.check
+            this.textareaField.value = storedVals.pattern
+            this.tagLimitField.value = storedVals.tagLim
+            this.checkboxField.dispatchEvent(new Event('change')) // apply formatting
+        }
 
         get check() { return this.checkboxField.checked }
         get pattern() { return this.textareaField.value.split(',').map(s => s.trim()) } // TODO clean up line breaks. returns array
@@ -247,17 +281,17 @@ TO DO                                                                           
         excludedCharacters = new tagBlock('exclude', 'characters'),
         excludedRelationships = new tagBlock('exclude', 'relationships')
 
-    // filter on load (if any settings are loaded)
-    for (const block of [characters, relationships, excludedCharacters, excludedRelationships]) { block.applyFormatting() }
+    // load saved filters and apply (if any are loaded)
+    characters.loadFromStorage(stored.characters)
+    relationships.loadFromStorage(stored.relationships)
+    excludedCharacters.loadFromStorage(stored.excludedCharacters)
+    excludedRelationships.loadFromStorage(stored.excludedRelationships)
+    $(`.tpf__settings input[value=${stored.format}]`).checked = true
 
-    /*
-    const ao3SaviorIsInstalled = true // TODO get from settings
-    const delay = ao3SaviorIsInstalled ? 20 : 0 // add 20ms delay to prevent conflicts with AO3 savior (which runs after a 15ms delay)
-    setTimeout(runEverything, delay)
-    function runEverything() {
-    */
+    // add 20ms delay to prevent conflicts with AO3 savior (which runs after a 15ms delay)
+    const delay = stored.ao3SaviorIsInstalled ? 20 : 0
+    setTimeout(applyFilters, delay)
 
-    const works = $$('.work.blurb')
     const inputTextFields = $$('.tpf__menu :is(input[type="text"], textarea)'),
         checkboxFields = $$('.tpf__menu input[type="checkbox"]')
 
@@ -272,6 +306,7 @@ TO DO                                                                           
             field.dispatchEvent(new Event('change'))
         }
         showAllWorks()
+        GM_deleteValues(['characters', 'relationships', 'excludedCharacters', 'excludedRelationships'])
     })
 
     function showAllWorks() {
@@ -284,6 +319,21 @@ TO DO                                                                           
     function applyFilters() {
 
         if (!filterIsOn) { toggleFilterStatus() }
+        const format = $('input[name="format"]:checked').value
+
+        // Save fields
+        function storeVals(tagSet, storeTo) {
+            GM_setValue(storeTo, {
+                check: tagSet.check,
+                pattern: tagSet.pattern,
+                tagLim: tagSet.tagLim,
+            })
+        }
+        storeVals(characters, 'characters')
+        storeVals(relationships, 'relationships')
+        storeVals(excludedCharacters, 'excludedCharacters')
+        storeVals(excludedRelationships, 'excludedRelationships')
+        GM_setValue('format', format)
 
         // If no valid characters/relationships are found, exit early (and reveal all)
         if (!characters.checkTags && !relationships.checkTags && !excludedCharacters.checkTags && !excludedRelationships.checkTags) {
@@ -291,8 +341,6 @@ TO DO                                                                           
             debugLog('No valid filters found!')
             return
         }
-
-        const format = $('input[name="format"]:checked').value
 
         // iterate through works
         for (let i = 0; i < works.length; i++) {
@@ -310,7 +358,7 @@ TO DO                                                                           
                 if (!tagSet.checkTags) { return tagSet.defaultMatchResult } // show work (TRUE) for included tags, hide (FALSE) for excluded
                 tagsToCheck = tagsToCheck.slice(0, tagSet.tagLim)
                 for (let userTag of tagSet.pattern) {
-                    const pattern = (format === 'wildcard') ? wildcardPattern(userTag) : userTag
+                    const pattern = (format === 'wildcard') ? wildcardPattern(userTag) : userTag // FIX magic string
                     const rx = RegExp(pattern, 'gi')
                     for (let workTag of tagsToCheck) {
                         if (rx.test(workTag)) { return true }
@@ -396,7 +444,6 @@ TO DO                                                                           
             display: none;
         }`
 
-    // eslint-disable-next-line no-undef
     GM_addStyle(newCss + `
 .tpf__menu {
     font-size: 0.9em;
