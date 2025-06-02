@@ -1,45 +1,157 @@
-.tpf__menu {
-    font-family: "Lucida Grande", "Lucida Sans Unicode", Verdana, Helvetica, sans-serif; /*DELETE FOR AO3*/
-    font-size: 0.8em;
+ /*GENERAL AO3 SETTINGS - FOR PREVIEW PURPOSES ONLY*/
+body {
+    font-family: "Lucida Grande", "Lucida Sans Unicode", Verdana, Helvetica, sans-serif;
+}
+h3, h4 {
+    font-family: Georgia, serif;
+}
+.tpf__filters h4 {
+    display: inline;
+    font-weight: 700;
+}
+input[type=checkbox]:checked + .indicator + span , input[type=radio]:checked + .indicator + span {
+    font-weight: 700;
+}
+legend {
+    display:none;
+}
+.expander {
+	background: url("https://archiveofourown.org/images/arrow-right.gif") left center no-repeat;
+	border: none;
+	padding: 0.25em 0 0.25em 14px;
+}
+.landmark {
+    font-style: 0;
+    opacity: 0;
+	font-size: 0;
+	line-height: 0;
+	height: 0;
+	margin: 0;
+	clear: both;
+	color: transparent;
+	opacity: 0;
+}
+.actions button:hover {
+    color: #900;
+}
+.footnote {
+	font-size: 0.75em;
+	float: right;
+}
 
-    & h3, h4 {
+/*CUSTOM MENU*/
+.tpf__menu {
+    font-size: 0.9em;
+
+    & h3, h4, dt, dd {
         margin: unset;
-        font-family: Georgia, serif;
     }
-    & section {
-        padding: 2px;
-        &.wrap {
-            border-bottom:solid 2px firebrick;
-            min-width: fit-content;
-            margin-bottom: 7px;
-        };
-        &.tpf__tag-block {
-            display: block;
-        };
-        &.bottom {
-            & button {
-                box-sizing: border-box;
-                width: 100%;
-                height: auto;
+    & button {
+        margin: 0.15em 0;
+    }
+
+    /* SIDEBAR MENU */
+
+    &.tpf__filters {
+        background-color: antiquewhite;
+        padding: 0.643em;
+    }
+
+    & .tpf__filter-head {
+        display: flex;
+        justify-content: space-between;
+        & .expander {
+            font-size: 1.2em;
+        }
+        & #tpf__filter-toggle {
+            width:2.5em;
+            &.current {
+                font-weight: 700;
             }
-            & fieldset {
-                box-sizing: border-box;
-                width: 100%;
-                box-shadow: inset 0 1px 2px #ccc;
-                background-color: rgb(251, 241, 231);
-                & legend {
-                    font-weight:bold;
-                    font-family: Georgia, serif;
-                }
+            &:hover, &:focus-visible {
+                color: #900;
+                border-top: 1px solid #999;
+                border-left: 1px solid #999;
+                box-shadow: inset 2px 2px 2px #bbb;
             }
         }
     }
-    & div {
-        margin:4px;
+
+    & section {
+        &.tpf__wrap {
+            margin-top: 1.3em;
+        }        
+        &.tpf__tag-block, &.tpf__wrap .tpf__head {
+            margin-bottom: 0.4em;
+        }
+        &.tpf__settings {
+            margin-top: 2em;
+        }
     }
-    & button {
-        margin: 2px;
-        min-width: max-content; /*keep text on one line*/
+
+    /* MENU ELEMENTS */
+
+    & dt.collapsed + dd.expandable {
+        display: none;        
+    }
+    & .tpf__wrap > .tpf__head {
+        padding: 0.1em;
+        border-bottom:solid 2px firebrick;
+    }
+    & textarea:read-only, input[type=text]:read-only {
+        background-color: #FCF5EB;
+        color: #525252;
+    }
+    & .tpf__tag-list {
+        resize: vertical;
+        width: 100%;
+        box-sizing: border-box;
+        min-height: unset;
+        margin-top: 0.15em;
+        padding: 0.3em;
+        font-family: monospace;
+    }
+    & .tpf__within {
+        display: block;
+        text-align: right;
+        & .tpf__tag-lim {
+            width: 1.1em;
+        }
+    }
+    & fieldset {
+        margin: 0 0 0.6em 0;
+        box-sizing: border-box;
+        width: 100%;
+        box-shadow: inset 0 1px 2px #ccc; /*mimic AO3 textboxes*/
+        background-color: #FCF5EB;
+        & .question {
+            width: unset;
+            font-size: 1em;
+            vertical-align:text-top;
+            float: right;
+        }
+    }
+    & label {
+        white-space: nowrap;
+    }
+    & .actions button {
+        box-sizing: border-box;
+        width: 100%;
+        height: auto;
+    }
+    & .question {
+        padding:0 0.425em;
+        margin: 0 1px;
+        border: 1px solid;
+        border-radius: 0.75em;
+        font-size: 0.75em;
+        vertical-align: super;
+        cursor: help;
+        font-family: Georgia, serif;
+        font-weight: bold;
+    }
+    & .footnote {
+        padding-right: unset;
     }
     
     /* INITIAL FILTER MENU */
@@ -86,6 +198,17 @@
     }
 
     /**/
+    & #tpf__config-head {
+        & .expander {
+            font-size: 1.1em;
+        }
+    }
+    & .tpf__config {
+        display: grid;
+        row-gap: 0.3em;
+        background-color: floralwhite;
+        
+    }
 
     &.popup {
         display: grid;

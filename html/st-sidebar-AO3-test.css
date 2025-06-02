@@ -47,7 +47,7 @@ legend {
         margin: unset;
     }
     & button {
-        margin: 0.15em 0;
+        margin: 0.25em 0;
     }
 
     /* SIDEBAR MENU */
@@ -75,6 +75,30 @@ legend {
                 box-shadow: inset 2px 2px 2px #bbb;
             }
         }
+    }
+    & .tpf__apply {
+        margin: 1em 0;
+        &::before { content: "🡆\00a0" } /*\00a0 for nbsp*/
+    }
+    & #tpf__config-head {
+        display: flex;
+        justify-content: space-between;
+        & .expander {
+            font-size: 1.1em;
+        }
+        & .footnote {
+            min-width: fit-content;
+        }
+    }
+    & .tpf__config.expandable {
+        background-color: #FCF5EB;
+        box-shadow: inset 0px 7px 7px -7px #999;
+        padding: 1em 0.5em;
+        box-sizing: expandable;
+        display: grid;
+        row-gap: 0.5em;
+        & .save::before { content: "💾" ; float:left }
+        & .load::before { content: "🠋" ; text-decoration: underline; float:left}
     }
 
     & section {
@@ -134,6 +158,13 @@ legend {
     & label {
         white-space: nowrap;
     }
+    & .explanatory-text {
+        display: block;
+        font-size: 0.8em;
+        margin-left: 2em;
+        line-height: 1.1em;
+        color: #525252;
+    }
     & .actions button {
         box-sizing: border-box;
         width: 100%;
@@ -154,7 +185,8 @@ legend {
         padding-right: unset;
     }
 }
-/* use AO3's own CSS for the checkboxes: 
-.filters.indicator
-.filters.indicator.exclude
+/* 
+
+[ ] custom CSS theming (make it easier for people to edit - or switch between the script theme and system default)
+
 */

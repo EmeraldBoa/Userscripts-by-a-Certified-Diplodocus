@@ -30,7 +30,7 @@
                             <span class="indicator" aria-hidden="true"></span>
                             <span id="block-include-chars"><span class="landmark">Include </span>Characters</span>
                         </label>
-                        <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                        <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
                             spellcheck="false" placeholder="Gilgamesh, Enkidu"></textarea>
                         <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
                             tags</label>
@@ -41,7 +41,7 @@
                             <span class="indicator" aria-hidden="true"></span>
                             <span><span class="landmark">Include </span>Relationships</span>
                         </label>
-                        <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                        <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
                             spellcheck="false" placeholder="Gilgamesh*Enkidu, Enkidu*Gilgamesh"></textarea>
                         <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
                             tags</label>
@@ -58,7 +58,7 @@
                             <span class="indicator" aria-hidden="true"></span>
                             <span><span class="landmark">Exclude </span>Characters</span>
                         </label>
-                        <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                        <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
                             spellcheck="false"></textarea>
                         <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim"
                                 aria-label="N">
@@ -70,7 +70,7 @@
                             <span class="indicator" aria-hidden="true"></span>
                             <span><span class="landmark">Exclude </span>Relationships</span>
                         </label>
-                        <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                        <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
                             spellcheck="false" placeholder="*Ishtar*"></textarea>
                         <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
                             tags</label>
@@ -83,52 +83,61 @@
                             Format
                         </legend>
                         <label>
-                            <input type="radio" name="format" id="tpf__opt-wildcard" value="wildcard" form="" checked><!--omit from parent form-->
+                            <input type="radio" name="format" id="tpf__opt-wildcard" value="wildcard" form=""
+                                checked><!--omit from parent form-->
                             <span class="indicator" aria-hidden="true"></span>
                             <span>wildcards (*)</span>
                         </label>
                         <label>
-                            <input type="radio" name="format" id="tpf__opt-regex" value="regex" form=""><!--omit from parent form-->
+                            <input type="radio" name="format" id="tpf__opt-regex" value="regex"
+                                form=""><!--omit from parent form-->
                             <span class="indicator" aria-hidden="true"></span>
                             <span>regex</span>
                         </label>
                         <button type="button" class="question" aria-label="help">?</button>
                     </fieldset>
-                    <div class="actions">
-                        <button type="button" aria-label="Config, Import/Export">⚙️ Config, 💾 Imp/Export</button>
-                    </div>
                 </section>
                 <section class="actions" aria-describedby="tpf__header-submit">
                     <h3 id="tpf__header-submit" class="landmark">
                         Submit
-                    </h3><button id="tpf__apply" type="button" aria-label="Apply filters">
-                        🡆 Apply filters
-                    </button>
+                    </h3><button class="tpf__apply" type="button">Apply filters</button>
                 </section>
-                <p class="footnote">
-                    <a href="#work-filters">Clear Filters</a>
-                </p>
+                <dl>
+                    <dt id="tpf__config-head" class="filter-toggle expanded">
+                        <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__config-head"
+                            aria-label="Settings">⚙️ Settings</button>
+                        <p class="footnote">
+                            <a href="#work-filters">Clear Filters</a>
+                        </p>
+                    </dt>
+                    <dd class="tpf__config expandable">
+                        <label>
+                            <input id="tpf__setting-AO3-sav" type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span>AO3 Savior is installed</span>
+                            <span class="explanatory-text">(prevent conflict)</span>
+                        </label>
+                        <div class="actions">
+                            <button class="save" type="button">Export tag filters to file</button>
+                            <button class="load" type="button">Import saved tag filters</button>
+                        </div>
+                    </dd>
+                </dl>
             </dd>
         </dl>
     </fieldset>
+
 </body>
 
 </html>
 
 <!--
 TODO 
-    [x] aria-expanded in html and js (collapse control)
-    [-] add accessibility label to the toggle button:
-    "priority filters are " + (button text) "on/off"
-    [x] link headers to sections
-    [x] label the '?' button
-    [-] .bottom section to div?
-    [x] hide emojis from screen readers (aria-hidden="true" or aria-label)
-    [x] landmark classes: WHAT ARE THEY?
-
---FIXME--: when I add this before "characters" and "relationships", the CSS rule
-no longer applies, so they aren't bolded on check:
-<span class="landmark">Include</span>
-<span class="landmark">Exclude</span>
-[x] fixed!
+    [ ] fewer lines in textareas (test)
+    [ ] add "settings" expandable + css from the other file
+        [x] make spacing match the rest
+        [x] class/id for checkbox. 
+            [ ] Explanatory note/tooltip?
+        [ ] fix landmarks
+        [ ] little css rotation on emoji?
 -->

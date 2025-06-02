@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AO3: Priority tag filter
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.3.0
+// @version      1.4.0
 // @description  Hide work if chosen tags are late in sequence, or if blacklisted tags are early
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/works*
@@ -28,11 +28,14 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
 TO-DOs (later)
     [ ] list functions and changes from scriptfairy's version
     [ ] modify to use AO3's fold/message. IF Ao3 class appears, add message to the fold. IF not, proceed as normal.
-    [ ] handle diacritics
+    [ ] better searching
+        [ ] handle diacritics
+        [ ] wildcards are unintuitive. Rework so you don't need
+          to wrap the *name* in asterisks (make it a WORD)
 https://stackoverflow.com/questions/990904/remove-accents-diacritics-in-a-string-in-javascript/37511463#37511463
 https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/normalize
 https://www.davidbcalhoun.com/2019/matching-accented-strings-in-javascript/
-    [ ] test with "GM_getValue / GM_setValue". Would require [x] means "done in HTML"
+    [x] test with "GM_getValue / GM_setValue". Would require [x] means "done in HTML"
         [x] a menu (to display and edit saved settings)
         [x] pop-up / expansion toggle showing regex hints
         [x] button to enable/disable?
@@ -42,14 +45,13 @@ https://www.davidbcalhoun.com/2019/matching-accented-strings-in-javascript/
         [ ] save current settings to extension
         [ ] dropdown to choose between saved settings
 
-TO DO                                                                                                          (ongoing)
+TO DO : UI                                                                                                         (ongoing)
 
     [x] add menu (HTML + CSS + JS for fold/unfold)
         [x] consistent "TPF-..." class names
         [x] default to collapsed
     [x] get config info from menu
         [ ] clean & validate
-        [ ] (set AO3_isloaded= true for now)
         [x] get regex/wildcards from radio buttons
     [x] run existing code to apply filters
         [x] use apply button to apply/remove filters (now works when all filters are deselected)
@@ -69,9 +71,11 @@ TO DO                                                                           
         [x] todo: test what happens if I hit "clear filters" in the second form:
             does it clear the priority form? (could affect the GM_get/set): answer: NO!
         [ ] remove unused GM_ functions. Test GM_getValues and GM_setValues in ViolentMonkey.
-    [ ] modal popups
-        [ ] config popup > apply
-        [ ] info popup
+    [x] config section
+        [x] basic set up
+        [x] ao3sav setting > add GM_set
+        [x] update html + css in all files
+    [ ] info popup(s)
     [ ] add error messages for incorrect inputs (popup? in menu?)
 
 '------------------------------------------------------------------------------------------------------------------ */
@@ -80,6 +84,20 @@ TO DO                                                                           
     const enableVerboseLogging = true // set to 'true' for debugging purposes
     const $ = document.querySelector.bind(document) // shorthand for readability
     const $$ = document.querySelectorAll.bind(document)
+
+    // get settings from script storage (default values if not)
+    const stored = GM_getValues({
+        isExpanded: false,
+        filterIsOn: 1,
+        characters: null,
+        relationships: null,
+        excludedCharacters: null,
+        excludedRelationships: null,
+        format: 'regex',
+        ao3SaviorIsInstalled: true,
+    })
+
+    const works = $$('.work.blurb')
 
     // add collapsible menu directly above AO3's filter sidebar. Get DOM objects.
     const filterSidebar = $('#work-filters')
@@ -107,7 +125,7 @@ TO DO                                                                           
                                 <span class="indicator" aria-hidden="true"></span>
                                 <span id="block-include-chars"><span class="landmark">Include </span>Characters</span>
                             </label>
-                            <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                            <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
                                 spellcheck="false" placeholder="Gilgamesh, Enkidu"></textarea>
                             <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
                                 tags</label>
@@ -118,7 +136,7 @@ TO DO                                                                           
                                 <span class="indicator" aria-hidden="true"></span>
                                 <span><span class="landmark">Include </span>Relationships</span>
                             </label>
-                            <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                            <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
                                 spellcheck="false" placeholder="Gilgamesh*Enkidu, Enkidu*Gilgamesh"></textarea>
                             <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
                                 tags</label>
@@ -135,7 +153,7 @@ TO DO                                                                           
                                 <span class="indicator" aria-hidden="true"></span>
                                 <span><span class="landmark">Exclude </span>Characters</span>
                             </label>
-                            <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                            <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
                                 spellcheck="false"></textarea>
                             <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim"
                                     aria-label="N">
@@ -147,7 +165,7 @@ TO DO                                                                           
                                 <span class="indicator" aria-hidden="true"></span>
                                 <span><span class="landmark">Exclude </span>Relationships</span>
                             </label>
-                            <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                            <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
                                 spellcheck="false" placeholder="*Ishtar*"></textarea>
                             <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
                                 tags</label>
@@ -160,7 +178,8 @@ TO DO                                                                           
                                 Format
                             </legend>
                             <label>
-                                <input type="radio" name="format" id="tpf__opt-wildcard" value="wildcard" form=""checked><!--omit from parent form-->
+                                <input type="radio" name="format" id="tpf__opt-wildcard" value="wildcard" form=""
+                                    checked><!--omit from parent form-->
                                 <span class="indicator" aria-hidden="true"></span>
                                 <span>wildcards (*)</span>
                             </label>
@@ -172,20 +191,33 @@ TO DO                                                                           
                             </label>
                             <button type="button" class="question" aria-label="help">?</button>
                         </fieldset>
-                        <div class="actions">
-                            <button type="button" aria-label="Config, Import/Export">⚙️ Config, 💾 Imp/Export</button>
-                        </div>
                     </section>
                     <section class="actions" aria-describedby="tpf__header-submit">
                         <h3 id="tpf__header-submit" class="landmark">
                             Submit
-                        </h3><button id="tpf__apply" type="button" aria-label="Apply filters">
-                            🡆 Apply filters
-                        </button>
+                        </h3><button class="tpf__apply" type="button">Apply filters</button>
                     </section>
-                    <p class="footnote">
-                        <a href="#work-filters">Clear Filters</a>
-                    </p>
+                    <dl>
+                        <dt id="tpf__config-head" class="filter-toggle collapsed">
+                            <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__config-head"
+                                aria-label="Settings">⚙️ Settings</button>
+                            <p class="footnote">
+                                <a href="#work-filters">Clear Filters</a>
+                            </p>
+                        </dt>
+                        <dd class="tpf__config expandable">
+                            <label>
+                                <input id="tpf__setting-AO3-sav" type="checkbox">
+                                <span class="indicator" aria-hidden="true"></span>
+                                <span>AO3 Savior is installed</span>
+                                <span class="explanatory-text">(prevent conflict)</span>
+                            </label>
+                            <div class="actions">
+                                <button class="save" type="button">Export tag filters to file</button>
+                                <button class="load" type="button">Import saved tag filters</button>
+                            </div>
+                        </dd>
+                    </dl>
                 </dd>
             </dl>
         </fieldset>`
@@ -195,19 +227,14 @@ TO DO                                                                           
         expander: $('.tpf__filter-head .expander'),
         toggle: $('#tpf__filter-toggle'),
     }
-    const works = $$('.work.blurb')
+    const settingsMenu = {
+        container: $('#tpf__config-head'),
+        expander: $('#tpf__config-head .expander'),
+        AO3sav: $('#tpf__setting-AO3-sav'),
+    }
 
-    // get settings from script storage (default values if not)
-    const stored = GM_getValues({
-        isExpanded: false,
-        filterIsOn: 1,
-        characters: null,
-        relationships: null,
-        excludedCharacters: null,
-        excludedRelationships: null,
-        format: 'regex',
-        ao3SaviorIsInstalled: true,
-    })
+    // set values
+    settingsMenu.AO3sav.checked = stored.ao3SaviorIsInstalled
 
     // collapse/expand the menu; set aria-expanded in the expander control
     let isExpanded = stored.isExpanded
@@ -221,6 +248,20 @@ TO DO                                                                           
         filterMenu.container.classList.toggle('expanded', isExpanded)
         filterMenu.container.classList.toggle('collapsed', !isExpanded)
         filterMenu.expander.setAttribute('aria-expanded', isExpanded)
+    }
+
+    // collapse/expand the settings section; set aria-expanded in the expander control. Default: collapsed
+    settingsMenu.expander.addEventListener('click', expandOrCollapseSettings)
+    function expandOrCollapseSettings() {
+        const settingsExpanded = settingsMenu.container.classList.toggle('expanded')
+        settingsMenu.container.classList.toggle('collapsed', !settingsExpanded)
+        settingsMenu.expander.setAttribute('aria-expanded', settingsExpanded)
+    }
+    function setExpanded(target, ...isExpanded) {
+        // const expand = isExpanded ||
+        target.container.classList.toggle('expanded', isExpanded)
+        target.container.classList.toggle('collapsed', !isExpanded)
+        target.expander.setAttribute('aria-expanded', isExpanded)
     }
 
     // toggle on/off (default to 'on')
@@ -296,7 +337,7 @@ TO DO                                                                           
         checkboxFields = $$('.tpf__menu input[type="checkbox"]')
 
     // BUTTON: Apply filters
-    $('#tpf__apply').addEventListener('click', applyFilters)
+    $('.tpf__apply').addEventListener('click', applyFilters) // MAYBE adapt to multiple buttons
 
     // BUTTON: Clear filters
     $('.tpf__menu .footnote a').addEventListener('click', () => { // MAYBE also the format selectors?
@@ -314,6 +355,9 @@ TO DO                                                                           
             works[i].classList.toggle('hidden-work', false)
         }
     }
+
+    // SETTINGS
+    settingsMenu.AO3sav.addEventListener('change', function () { GM_setValue('ao3SaviorIsInstalled', this.checked) })
 
     // Hide works which don't prioritise your characters/relationships. If filters are off, turn them on.
     function applyFilters() {
@@ -411,7 +455,7 @@ TO DO                                                                           
         return pattern
     }
 
-    const newCss = `
+    const hiderCss = `
         .hide-reasons {
             display: none;
             background-color: red;
@@ -444,7 +488,7 @@ TO DO                                                                           
             display: none;
         }`
 
-    GM_addStyle(newCss + `
+    GM_addStyle(hiderCss + `
 .tpf__menu {
     font-size: 0.9em;
 
@@ -452,7 +496,7 @@ TO DO                                                                           
         margin: unset;
     }
     & button {
-        margin: 0.15em 0;
+        margin: 0.25em 0;
     }
 
     /* SIDEBAR MENU */
@@ -480,6 +524,30 @@ TO DO                                                                           
                 box-shadow: inset 2px 2px 2px #bbb;
             }
         }
+    }
+    & .tpf__apply {
+        margin: 1em 0;
+        &::before { content: "🡆\\00a0" } /*00a0 for nbsp, slash escaped*/
+    }
+    & #tpf__config-head {
+        display: flex;
+        justify-content: space-between;
+        & .expander {
+            font-size: 1.1em;
+        }
+        & .footnote {
+            min-width: fit-content;
+        }
+    }
+    & .tpf__config.expandable {
+        background-color: #FCF5EB;
+        box-shadow: inset 0px 7px 7px -7px #999;
+        padding: 1em 0.5em;
+        box-sizing: expandable;
+        display: grid;
+        row-gap: 0.5em;
+        & .save::before { content: "💾" ; float:left }
+        & .load::before { content: "🠋" ; text-decoration: underline; float:left}
     }
 
     & section {
@@ -538,6 +606,13 @@ TO DO                                                                           
     }
     & label {
         white-space: nowrap;
+    }
+    & .explanatory-text {
+        display: block;
+        font-size: 0.8em;
+        margin-left: 2em;
+        line-height: 1.1em;
+        color: #525252;
     }
     & .actions button {
         box-sizing: border-box;

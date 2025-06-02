@@ -7,93 +7,127 @@
 </head>
 
 <body>
-    <fieldset class="st-menu st-filters">
-        <legend>Tag priority filters:</legend>
-        <section class="wrap">
-            <div class="head">
-                <h4>Include</h4> (at least one)
-                <button type="button" class="question">?</button>
-            </div>
-            <section class="tag-block include characters">
-                <label>
-                    <input type="checkbox">
-                    <span class="indicator" aria-hidden="true"></span>
-                    <span>Characters</span>
-                </label>
-                <textarea class="tag-list" rows="5" placeholder="Gilgamesh, Enkidu"></textarea>
-                <div class="within">...within the first <input type="text" class="tag-lim"> tags</div>
-            </section>
-            <section class="tag-block include relationships">
-                <label>
-                    <input type="checkbox">
-                    <span class="indicator" aria-hidden="true"></span>
-                    <span>Relationships</span>
-                </label>
-                <textarea class="tag-list" rows="5" placeholder="Gilgamesh*Enkidu, Enkidu*Gilgamesh"></textarea>
-                <div class="within">...within the first <input type="text" class="tag-lim"> tags</div>
-            </section>
-        </section>
-        <section class="wrap">
-            <div class="head">
-                <h4>Exclude</h4>
-                <button type="button" class="question">?</button>
-            </div>
-            <section class="tag-block exclude characters">
-                <label>
-                    <input type="checkbox">
-                    <span class="indicator" aria-hidden="true"></span>
-                    <span>Characters</span>
-                </label>
-                <textarea class="tag-list" rows="5" readonly aria-readonly="true"></textarea>
-                <div class="within">...within the first <input type="text" class="tag-lim"> tags</div>
-            </section>
-            <section class="tag-block exclude relationships">
-                <label>
-                    <input type="checkbox">
-                    <span class="indicator" aria-hidden="true"></span>
-                    <span>Relationships</span>
-                </label>
-                <textarea class="tag-list" rows="5" placeholder="*Ishtar*"></textarea>
-                <div class="within">...within the first <input type="text" class="tag-lim"> tags</div>
-            </section>
-        </section>
-        <section class="bottom">
-            <fieldset>
-                <legend>
-                    Format
-                    <button type="button" class="question">?</button>
-                </legend>
-                <label>
-                    <input type="radio" name="format" id="wc" value="wc" checked>
-                    <span class="indicator" aria-hidden="true"></span>
-                    <span>wildcards (*)</span>
-                </label>
-                <label>
-                    <input type="radio" name="format" id="rx" value="rx">
-                    <span class="indicator" aria-hidden="true"></span>
-                    <span>regex</span>
-                </label>
-            </fieldset>
-            <button type="button">⚙️ Config, 💾 Imp/Export </button>
-            <button type="button">🡆 Apply filters</button>
-        </section>
+    <h3 class="landmark heading">Tag priority</h3>
+    <fieldset class="tpf__menu tpf__filters">
+        <legend>Tag priority:</legend> <!--is this redundant?-->
+        <dl>
+            <dt class="tpf__filter-head expanded">
+                <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__menu-content">
+                    Tag priority
+                </button>
+                <button type="button" id="tpf__filter-toggle" class="current" aria-pressed="true">On</button>
+            </dt>
+            <dd id="tpf__menu-content" class="expandable">
+                <section class="tpf__wrap" aria-describedby="tpf__header-include">
+                    <div class="tpf__head">
+                        <h4 id="tpf__header-include">Include</h4> (at least one)
+                        <button type="button" class="question" aria-label="help">?</button>
+                    </div>
+                    <section class="tpf__tag-block include characters">
+                        <label id="tpf__include-chars">
+                            <input type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span id="block-include-chars"><span class="landmark">Include </span>Characters</span>
+                        </label>
+                        <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                            spellcheck="false" placeholder="Gilgamesh, Enkidu"></textarea>
+                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
+                            tags</label>
+                    </section>
+                    <section class="tpf__tag-block include relationships">
+                        <label>
+                            <input type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span><span class="landmark">Include </span>Relationships</span>
+                        </label>
+                        <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                            spellcheck="false" placeholder="Gilgamesh*Enkidu, Enkidu*Gilgamesh"></textarea>
+                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
+                            tags</label>
+                    </section>
+                </section>
+                <section class="tpf__wrap" aria-describedby="tpf__header-exclude">
+                    <div class="tpf__head">
+                        <h4 id="tpf__header-exclude">Exclude</h4>
+                        <button type="button" class="question" aria-label="help">?</button>
+                    </div>
+                    <section class="tpf__tag-block exclude characters">
+                        <label>
+                            <input type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span><span class="landmark">Exclude </span>Characters</span>
+                        </label>
+                        <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                            spellcheck="false"></textarea>
+                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim"
+                                aria-label="N">
+                            tags</label>
+                    </section>
+                    <section class="tpf__tag-block exclude relationships">
+                        <label>
+                            <input type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span><span class="landmark">Exclude </span>Relationships</span>
+                        </label>
+                        <textarea class="tpf__tag-list" rows="5" autocomplete="off" autocapitalize="off"
+                            spellcheck="false" placeholder="*Ishtar*"></textarea>
+                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
+                            tags</label>
+                    </section>
+                </section>
+                <section class="tpf__settings" aria-describedby="tpf__header-settings">
+                    <h3 id="tpf__header-settings" class="landmark">Settings</h3>
+                    <fieldset>
+                        <legend>
+                            Format
+                        </legend>
+                        <label>
+                            <input type="radio" name="format" id="tpf__opt-wildcard" value="wildcard" form=""
+                                checked><!--omit from parent form-->
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span>wildcards (*)</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="format" id="tpf__opt-regex" value="regex"
+                                form=""><!--omit from parent form-->
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span>regex</span>
+                        </label>
+                        <button type="button" class="question" aria-label="help">?</button>
+                    </fieldset>
+                </section>
+                <section class="actions" aria-describedby="tpf__header-submit">
+                    <h3 id="tpf__header-submit" class="landmark">
+                        Submit
+                    </h3><button class="tpf__apply" type="button">Apply filters</button>
+                </section>
+                <dl>
+                    <dt id="tpf__config-head" class="filter-toggle expanded">
+                        <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__config-head"
+                            aria-label="Settings">⚙️ Settings</button>
+                        <p class="footnote">
+                            <a href="#work-filters">Clear Filters</a>
+                        </p>
+                    </dt>
+                    <dd class="tpf__config expandable">
+                        <label>
+                            <input id="tpf__setting-AO3-sav" type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span>AO3 Savior is installed</span>
+                        </label>
+                        <div class="actions">
+                            <button class="save" type="button">Export tag filters to file</button>
+                            <button class="load" type="button">Import saved tag filters</button>
+                        </div>
+                    </dd>
+                </dl>
+            </dd>
+        </dl>
     </fieldset>
 
-    <div class="st-menu popup config">
-        <section class="head">
-            <h3>Config</h3>
-            <button type="button" class="exit-btn">x</button>
 
-        </section>
-        <label>
-            <input type="checkbox">
-            AO3 saviour is installed
-        </label>
-        <button type="button">💾 Export tag filters to file</button>
-        <button type="button"><span class="underline">🠋</span> Import saved tag filters</button>
-    </div>
 
-    <div class="st-menu popup info">
+    <div class="tpf__menu popup info">
         <section class="head">
             <h3>Tag priority filters</h3>
             <button type="button" class="exit-btn">x</button>
@@ -101,8 +135,8 @@
         <div class="scrollable">
             <section>
                 <p>The script cannot use AO3's tag system, but instead <strong>matches
-                    the literal tag text</strong>. <br>
-                    Add synonyms to your filters where necessary
+                        the literal tag text</strong>. <br>
+                    Add synonyms where necessary
                     (e.g. <span class="search-term">Naruto Uzumaki, Uzumaki Naruto</span>)</p>
                 <ul>
                     <li>Only character and relationship tags are checked.</li>
@@ -134,15 +168,18 @@
                     </li>
                     <li>
                         Search is case-insensitive and ignores diacritics (a = á, ä, ā), line breaks and extra spaces.
-                        (Characters like ñ, ł, æ, ø, are letters, not diacritics: searching <span class="search-term">Inigo</span> will match "Ínigo" but not
+                        (Characters like ñ, ł, æ, ø, are letters, not diacritics: searching <span
+                            class="search-term">Inigo</span> will match "Ínigo" but not
                         "Íñigo")
                     </li>
                 </ul>
-                <p>⚠ Don't use this script to block tags completely: <a href="https://greasyfork.org/en/scripts/3579-ao3-savior">AO3 savior</a> does it better.</p>
+                <p>⚠ If you need a blacklist, <a href="https://greasyfork.org/en/scripts/3579-ao3-savior">AO3 savior</a>
+                    does it better.</p>
             </section>
             <section>
                 <h3>How to filter</h3>
-                <p>Choose between <strong>*wildcards</strong> (default) or <strong>regex</strong> (more flexible, for advanced users). <br>
+                <p>Choose between <strong>*wildcards</strong> (default) or <strong>regex</strong> (more flexible, for
+                    advanced users). <br>
                     Wildcards are enough for most purposes, but NOTE:</p>
                 <table class="match-exclude">
                     <thead>
@@ -173,7 +210,8 @@
                     <li>alternate spellings: <span class="search-term">[RL]i[zs]a Hawkeye</span> ➜ Riza/Risa/Liza/Lisa
                         Hawkeye
                     </li>
-                    <li>limiting options: <span class="search-term">(Arnold|Ace).*Rimmer</span> ➜ don't match John or Harold
+                    <li>limiting options: <span class="search-term">(Arnold|Ace).*Rimmer</span> ➜ don't match John or
+                        Harold
                         Rimmer</li>
                     <li>more control: <span class="search-term">Naruto.*(!clone)</span> ➜ match Naruto but not his clone
                     </li>
@@ -199,7 +237,8 @@
                             <td>Leia, Leia Organa, Leia Skywalker</td>
                         </tr>
                         <tr>
-                            <td>…that don't have Luke or Han as the main characters (it's fine if they're in second place)
+                            <td>…that don't have Luke or Han as the main characters (it's fine if they're in second
+                                place)
                             </td>
                             <td>Exclude Characters</td>
                             <td>luke skywalker, han solo</td>
@@ -260,7 +299,8 @@
                     </tbody>
                 </table>
                 <p>Wait! In other fandoms this would work, but Avatar
-                    uses "Kataang", "Zutara", etc. <span class="search-term">"kat*, *ara"</span> would match those but also,
+                    uses "Kataang", "Zutara", etc. <span class="search-term">"kat*, *ara"</span> would match those but
+                    also,
                     e.g., "<span class="underline">Kat</span>ara &amp; Sokka". <br>
                     We could list them all, or...
                 </p>
@@ -303,17 +343,7 @@
 
 <!--
 TODO:
-[ ] should I have labels separate from checkboxes?
-    Setting up the IDs is such a pain...!
-    (Might be easier when building in JS, though)
-[ ] sort out the various margins & paddings
-    (built on the fly)
-[ ] add "disabled" (unselectable) 
-    or "read-more" (selectable) property to css
+[x] merge old css with new sidebar css
 [ ] add error message or icon if the wrong number of tags is selected
-[x] textareas 
-    [ ] which match neighbour (if side-by-side and not squashed in mobile!)
-    https://css-tricks.com/auto-growing-inputs-textareas/    
-    https://stackoverflow.com/questions/69283263/match-the-size-of-two-textarea-elements-when-one-of-them-changes
-[ ] use flexbox for the .head sections instead
+[ ] apply button appearance - click animation is unintuitive
     -->

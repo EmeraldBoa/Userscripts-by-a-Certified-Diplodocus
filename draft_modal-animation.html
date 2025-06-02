@@ -1,0 +1,127 @@
+<div id="modal-wrap" class="modal-closer" style="display: block; top: 208px;"><div id="modal" style="display: inline-block;" class="tall"><div class="content userstuff"><h4>Tag Filters: Include Tags</h4>
+
+<p>
+  The filters list the ten most popular tags for each tag category. To filter by any other tags, use the "Other tags to include" field.
+</p>
+
+
+</div><div class="footer"><span class="title">Work filters include tags</span><a class="action modal-closer" href="#">Close</a></div></div></div>
+
+#modal-bg: 					>div (class=loading)	#modal-wrap:						> div#modal
+class			style				style			class			style				class		style		
+----------------------------------------------------------------------------------------------------------------
+modal-closer	''					''				modal-closer	''
+
+modal-closer	display: block;		''				modal-closer	display:block
+				opacity: 0.154...	
+
+modal-closer	display: block;		display: block	modal-closer	display: block;		tall		display:inline-block
+(::before)		opacity: 0.650...									top: 312px;						opacity:0.082...
+
+				opacity: 0.930...																	opacity:0.371...
+
+modal-closer	display: block;		display: none	modal-closer	display: block;		tall		display:inline-block
+(::before)		/*opacity - none*/																	opacity:0.781
+
+modal-closer	display: block;		display: none	modal-closer	display: block;		tall		display:inline-block
+(::before)		/*opacity - none*/									top: 312px;						/*opacity - none*/
+
+[DONE!]
+Click > close
+
+modal-closer	display: block;		display: none	modal-closer	display: block;		tall		display:inline-block
+(::before)		opacity: 1;											top: 312px;						opacity: 1
+
+				1 --> 0																				1 --> 0 (same rate)
+				
+modal-closer	display: none;		display: none;	modal-closer	display: none;		''			display:inline-block;
+																	top: 312px;
+																	
+IN SUMMARY:
+	
+1. #modal-bg, #modal-wrap: unstyled
+
+2. #modal-bg, #modal-wrap: display: block
+	#modal-bg: begin opacity fade 0->1
+(possible the ".loading" child might also need its own fade - or just set to display:block with its parent #modal-bg)
+	
+
+3. (~0.3s later, #modal-bg opacity ~0.5)
+	#modal-wrap: top: 312px	(may be set automatically by AO3's own code!)
+	#modal: class="tall", begin opacity fade 0->1
+		userstuff div has content
+	3.1 .loading: "display:none" when #modal STARTS loading.
+
+4. DONE! opacity settings reset
+
+5. #modal-bg, #modal: begin opacity fade 1->0
+
+6. #modal-bg: display: none (could be removed - default is already "none")
+
+
+
+- add class .tpf__show-bg to #modal-bg, add class .tpf__show-wrap to #modal-wrap, add class .tall to #modal
+	- on a delay, #modal begins animation. .loading has display:none
+
+- remove classes when? how?
+
+
+const infoHtml = ``
+infoButton.addEventListener('click', openModal)
+const modal = { bg: $(#modal-bg), wrapper: $(#modal-wrap) }
+function openModal () {
+	$(#modal .userstuff).insertAdjacentHTML('afterbegin', infoHTML)
+	modal.bg.classList.add('tpf__modal-hidden')
+	modal.wrapper.classList.add('tpf__modal-hidden')
+	 // after a 0ms delay?
+	modal.bg.classList.add('tpf__show-modal')
+	modal.wrapper.classList.add('tpf__show-modal')
+	$(#modal).classList.add('tall')
+}
+// will content of .userstuff be removed automatically?
+
+function resetModalSomehow () {
+	modal.bg.classList.remove('tpf__modal-hidden', 'tpf__show-modal')
+	modal.wrapper.classList.remove('tpf__modal-hidden', 'tpf__show-modal')
+}
+
+.tpf__modal-hidden {
+	opacity: 0;
+	transition: opacity 250ms ease-in;
+}
+.tpf__show-modal {
+	display: block;
+	&#modal-bg {
+		opacity: 1;
+		transition-delay: 0ms;
+	}
+	& .tall {
+		opacity: 1;
+		transition-delay: 100ms;
+	}
+}
+
+.tpf__show-bg {
+	display: block;
+	opacity: 1;
+	transition-delay: 0ms;
+}
+.tpf__show-wrap {
+	display: block;
+	& .tall {
+		opacity: 1;
+		transition-delay: 100ms;
+	}
+}
+
+(close button works as normal)
+	
+																	
+<div id="modal-bg" class="modal-closer">
+	<div class="loading"></div>
+</div>
+<div id="modal-wrap" class="modal-closer">
+	<div id="modal">
+		<div class="content userstuff"></div>
+	</div>
+</div>
