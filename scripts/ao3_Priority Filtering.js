@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AO3: Priority tag filter
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.4.0
+// @version      1.4.1
 // @description  Hide work if chosen tags are late in sequence, or if blacklisted tags are early
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/works*
@@ -50,7 +50,7 @@ TO DO : UI                                                                      
     [x] add menu (HTML + CSS + JS for fold/unfold)
         [x] consistent "TPF-..." class names
         [x] default to collapsed
-    [x] get config info from menu
+    [x] get filter info from menu
         [ ] clean & validate
         [x] get regex/wildcards from radio buttons
     [x] run existing code to apply filters
@@ -88,7 +88,7 @@ TO DO : UI                                                                      
     // get settings from script storage (default values if not)
     const stored = GM_getValues({
         isExpanded: false,
-        filterIsOn: 1,
+        filterIsOn: true,
         characters: null,
         relationships: null,
         excludedCharacters: null,
@@ -98,6 +98,7 @@ TO DO : UI                                                                      
     })
 
     const works = $$('.work.blurb')
+    let noFilterYet = true
 
     // add collapsible menu directly above AO3's filter sidebar. Get DOM objects.
     const filterSidebar = $('#work-filters')
@@ -257,12 +258,15 @@ TO DO : UI                                                                      
         settingsMenu.container.classList.toggle('collapsed', !settingsExpanded)
         settingsMenu.expander.setAttribute('aria-expanded', settingsExpanded)
     }
-    function setExpanded(target, ...isExpanded) {
-        // const expand = isExpanded ||
-        target.container.classList.toggle('expanded', isExpanded)
-        target.container.classList.toggle('collapsed', !isExpanded)
-        target.expander.setAttribute('aria-expanded', isExpanded)
+    function toggleExpanded(target, ...forceExpand) { // TODO
+        const expand = forceExpand[0]
+        const isCurrentlyExpanded = target.container.classList.toggle('expanded', expand)
+        target.container.classList.toggle('collapsed', !expand)
+        target.expander.setAttribute('aria-expanded', expand)
+        return isCurrentlyExpanded
     }
+    toggleExpanded(filterMenu) // toggle
+    toggleExpanded(filterMenu, true) // force expand
 
     // toggle on/off (default to 'on')
     let filterIsOn = stored.filterIsOn
@@ -271,6 +275,7 @@ TO DO : UI                                                                      
     setFilterStatus()
 
     function toggleFilterStatus() {
+        if (noFilterYet) { applyFilters() }
         filterIsOn = !filterIsOn
         setFilterStatus()
     }
@@ -322,22 +327,45 @@ TO DO : UI                                                                      
         excludedCharacters = new tagBlock('exclude', 'characters'),
         excludedRelationships = new tagBlock('exclude', 'relationships')
 
-    // load saved filters and apply (if any are loaded)
+    // load saved filters
     characters.loadFromStorage(stored.characters)
     relationships.loadFromStorage(stored.relationships)
     excludedCharacters.loadFromStorage(stored.excludedCharacters)
     excludedRelationships.loadFromStorage(stored.excludedRelationships)
     $(`.tpf__settings input[value=${stored.format}]`).checked = true
 
-    // add 20ms delay to prevent conflicts with AO3 savior (which runs after a 15ms delay)
-    const delay = stored.ao3SaviorIsInstalled ? 20 : 0
-    setTimeout(applyFilters, delay)
+    // Filter on load: add 20ms delay to prevent conflicts with AO3 savior (which runs after a 15ms delay)
+    if (filterIsOn) {
+        const delay = stored.ao3SaviorIsInstalled ? 20 : 0
+        setTimeout(applyFilters, delay)
+    }
+
+    /* BUG : logic problem. You did this to yourselffff
+        - I want to apply the filters on load.
+        - I want to turn filters ON when applying.
+        - I also want to respect the user's previous filter status: if OFF, it should stay off!
+    As things are, the script loads the previous filter status (OFF), then applies filters and turns it ON anyway.
+    Possible solution:
+        - Only turn filters ON if the user clicked "apply"
+    In addition, I could
+        - When loading, apply filters, but leave them OFF. (a waste - most of the time, the user will probably not want to filter)
+        - When loading, if filters are OFF, don't apply (avoid unnecessary operations)
+            * PROBLEM: If I then decide to turn filters ON, there needs to be a filter to apply!
+            * BUT: I don't want to re-apply filters every time I hit "OFF/ON"
+            * Toggle ON = apply the last existing filter. If there is none, then run applyFilters()
+            *
+            * FIXED - I THINK. // TODO test!
+    */
 
     const inputTextFields = $$('.tpf__menu :is(input[type="text"], textarea)'),
         checkboxFields = $$('.tpf__menu input[type="checkbox"]')
 
     // BUTTON: Apply filters
-    $('.tpf__apply').addEventListener('click', applyFilters) // MAYBE adapt to multiple buttons
+    $('.tpf__apply').addEventListener('click', () => { // MAYBE adapt to multiple buttons
+        if (!filterIsOn) { toggleFilterStatus() }
+        applyFilters()
+        saveFilterFields()
+    })
 
     // BUTTON: Clear filters
     $('.tpf__menu .footnote a').addEventListener('click', () => { // MAYBE also the format selectors?
@@ -356,28 +384,28 @@ TO DO : UI                                                                      
         }
     }
 
+    function saveFilterFields() {
+        [
+            [characters, 'characters'], [relationships, 'relationships'],
+            [excludedCharacters, 'excludedCharacters'], [excludedRelationships, 'excludedRelationships'],
+        ].forEach(([tagSet, storeTo]) => {
+            GM_setValue(storeTo, {
+                check: tagSet.check,
+                pattern: tagSet.pattern,
+                tagLim: tagSet.tagLim,
+            })
+        })
+        GM_setValue('format', $('input[name="format"]:checked').value)
+    }
+
     // SETTINGS
     settingsMenu.AO3sav.addEventListener('change', function () { GM_setValue('ao3SaviorIsInstalled', this.checked) })
 
     // Hide works which don't prioritise your characters/relationships. If filters are off, turn them on.
     function applyFilters() {
 
-        if (!filterIsOn) { toggleFilterStatus() }
+        noFilterYet = false
         const format = $('input[name="format"]:checked').value
-
-        // Save fields
-        function storeVals(tagSet, storeTo) {
-            GM_setValue(storeTo, {
-                check: tagSet.check,
-                pattern: tagSet.pattern,
-                tagLim: tagSet.tagLim,
-            })
-        }
-        storeVals(characters, 'characters')
-        storeVals(relationships, 'relationships')
-        storeVals(excludedCharacters, 'excludedCharacters')
-        storeVals(excludedRelationships, 'excludedRelationships')
-        GM_setValue('format', format)
 
         // If no valid characters/relationships are found, exit early (and reveal all)
         if (!characters.checkTags && !relationships.checkTags && !excludedCharacters.checkTags && !excludedRelationships.checkTags) {
