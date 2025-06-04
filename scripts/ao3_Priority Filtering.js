@@ -320,7 +320,7 @@ TO DO : UI                                                                      
         ...at this point, perhaps recreating from scratch may be cheaper...
     */
     function openModal() {
-        console.log('attemtping to open modal...')
+        console.log('attempting to open modal...')
         const inlineCSS = `
             display: block;
             opacity: 0;
@@ -343,7 +343,7 @@ TO DO : UI                                                                      
         }, 500)
     }
     function openModalOLD_backup() {
-        console.log('attemtping to open modal...')
+        console.log('attempting to open modal...')
         ao3Modal.content.insertAdjacentHTML('afterbegin', infoModalHTML)
         ao3Modal.bg.classList.add('tpf__modal-hidden')
         ao3Modal.wrapper.classList.add('tpf__modal-hidden')
