@@ -81,13 +81,13 @@ TO DO : UI                                                                      
 '------------------------------------------------------------------------------------------------------------------ */
 (function () {
     'use strict'
-    const enableVerboseLogging = true // set to 'true' for debugging purposes
+    const enableVerboseLogging = false // set to 'true' for debugging purposes
     const $ = document.querySelector.bind(document) // shorthand for readability
     const $$ = document.querySelectorAll.bind(document)
 
     // get settings from script storage (default values if not)
     const stored = GM_getValues({
-        isExpanded: false,
+        menuIsExpanded: false,
         filterIsOn: true,
         characters: null,
         relationships: null,
@@ -98,13 +98,10 @@ TO DO : UI                                                                      
     })
 
     const works = $$('.work.blurb')
+    const workslistContainer = $('ol.work.index.group')
     let noFilterYet = true
 
-    // add collapsible menu directly above AO3's filter sidebar. Get DOM objects.
-    const filterSidebar = $('#work-filters')
-    if (!filterSidebar) { return }
-    filterSidebar.insertAdjacentHTML('afterbegin',
-        `<h3 class="landmark heading">Tag priority</h3>
+    const sidebarHTML = `<h3 class="landmark heading">Tag priority</h3>
         <fieldset class="tpf__menu tpf__filters">
             <legend>Tag priority:</legend> <!--is this redundant?-->
             <dl>
@@ -222,7 +219,12 @@ TO DO : UI                                                                      
                 </dd>
             </dl>
         </fieldset>`
-    )
+    const infoModalHTML = `<p>Testing the info popup!</p>`
+
+    // add collapsible menu directly above AO3's filter sidebar. Get DOM objects.
+    const filterSidebar = $('#work-filters')
+    if (!filterSidebar) { return }
+    filterSidebar.insertAdjacentHTML('afterbegin', sidebarHTML)
     const filterMenu = {
         container: $('.tpf__filter-head'),
         expander: $('.tpf__filter-head .expander'),
@@ -233,63 +235,8 @@ TO DO : UI                                                                      
         expander: $('#tpf__config-head .expander'),
         AO3sav: $('#tpf__setting-AO3-sav'),
     }
-
-    // set values
-    settingsMenu.AO3sav.checked = stored.ao3SaviorIsInstalled
-
-    // collapse/expand the menu; set aria-expanded in the expander control
-    let isExpanded = stored.isExpanded
-    setExpandedStatus()
-    filterMenu.expander.addEventListener('click', () => {
-        isExpanded = !isExpanded
-        GM_setValue('isExpanded', isExpanded)
-        setExpandedStatus()
-    })
-    function setExpandedStatus() {
-        filterMenu.container.classList.toggle('expanded', isExpanded)
-        filterMenu.container.classList.toggle('collapsed', !isExpanded)
-        filterMenu.expander.setAttribute('aria-expanded', isExpanded)
-    }
-
-    // collapse/expand the settings section; set aria-expanded in the expander control. Default: collapsed
-    settingsMenu.expander.addEventListener('click', expandOrCollapseSettings)
-    function expandOrCollapseSettings() {
-        const settingsExpanded = settingsMenu.container.classList.toggle('expanded')
-        settingsMenu.container.classList.toggle('collapsed', !settingsExpanded)
-        settingsMenu.expander.setAttribute('aria-expanded', settingsExpanded)
-    }
-    function toggleExpanded(target, ...forceExpand) { // TODO
-        const expand = forceExpand[0]
-        const isCurrentlyExpanded = target.container.classList.toggle('expanded', expand)
-        target.container.classList.toggle('collapsed', !expand)
-        target.expander.setAttribute('aria-expanded', expand)
-        return isCurrentlyExpanded
-    }
-    toggleExpanded(filterMenu) // toggle
-    toggleExpanded(filterMenu, true) // force expand
-
-    // toggle on/off (default to 'on')
-    let filterIsOn = stored.filterIsOn
-    const workslistContainer = $('ol.work.index.group')
-    filterMenu.toggle.addEventListener('click', toggleFilterStatus)
-    setFilterStatus()
-
-    function toggleFilterStatus() {
-        if (noFilterYet) { applyFilters() }
-        filterIsOn = !filterIsOn
-        setFilterStatus()
-    }
-
-    function setFilterStatus() {
-        GM_setValue('filterIsOn', filterIsOn) // store value
-        workslistContainer.classList.toggle('show-priority-filters', filterIsOn) // disable the CSS which hides stories
-
-        // format the toggle button
-        filterMenu.toggle.setAttribute('aria-pressed', filterIsOn)
-        filterMenu.toggle.classList.toggle('current', filterIsOn)
-        filterMenu.toggle.textContent = filterIsOn ? 'On' : 'Off'
-    }
-    // --------------------------------------------------------------------------------------------------------
+    const textFields = $$('.tpf__menu :is(input[type="text"], textarea)'),
+        checkboxFields = $$('.tpf__menu input[type="checkbox"]')
 
     // DEFINE FILTER FIELDS + GETTERS
     class tagBlock { // set elements, get values. If the checkbox is unselected, disable the other fields.
@@ -327,6 +274,13 @@ TO DO : UI                                                                      
         excludedCharacters = new tagBlock('exclude', 'characters'),
         excludedRelationships = new tagBlock('exclude', 'relationships')
 
+    // SET INITIAL VALUES ------------------------------------------------------------
+    // menu
+    settingsMenu.AO3sav.checked = stored.ao3SaviorIsInstalled
+    toggleExpand(filterMenu, stored.menuIsExpanded)
+    let filterIsOn = stored.filterIsOn
+    setFilterStatus()
+
     // load saved filters
     characters.loadFromStorage(stored.characters)
     relationships.loadFromStorage(stored.relationships)
@@ -340,27 +294,80 @@ TO DO : UI                                                                      
         setTimeout(applyFilters, delay)
     }
 
-    /* BUG : logic problem. You did this to yourselffff
-        - I want to apply the filters on load.
-        - I want to turn filters ON when applying.
-        - I also want to respect the user's previous filter status: if OFF, it should stay off!
-    As things are, the script loads the previous filter status (OFF), then applies filters and turns it ON anyway.
-    Possible solution:
-        - Only turn filters ON if the user clicked "apply"
-    In addition, I could
-        - When loading, apply filters, but leave them OFF. (a waste - most of the time, the user will probably not want to filter)
-        - When loading, if filters are OFF, don't apply (avoid unnecessary operations)
-            * PROBLEM: If I then decide to turn filters ON, there needs to be a filter to apply!
-            * BUT: I don't want to re-apply filters every time I hit "OFF/ON"
-            * Toggle ON = apply the last existing filter. If there is none, then run applyFilters()
-            *
-            * FIXED - I THINK. // TODO test!
+    // ADD EVENT LISTENERS ----------------------------------------------------------
+    // (expand controls, toggle filters off/on, apply/clear filters ... and save)
+
+    filterMenu.expander.addEventListener('click', () => {
+        const isExpanded = toggleExpand(filterMenu)
+        GM_setValue('isExpanded', isExpanded)
+    })
+    settingsMenu.expander.addEventListener('click', () => { toggleExpand(settingsMenu) }) // collapsed by deafult
+    filterMenu.toggle.addEventListener('click', toggleFilterStatus)
+    settingsMenu.AO3sav.addEventListener('change', function () { GM_setValue('ao3SaviorIsInstalled', this.checked) })
+
+    // BUTTON: info popup
+    const ao3Modal = {
+        bg: $('#modal-bg'),
+        loading: $('#modal-bg .loading'),
+        wrapper: $('#modal-wrap'),
+        window: $('#modal'),
+        content: $('#modal .userstuff'),
+    }
+    /* FIXME : 
+        [ ] must be vertically centred in viewport
+        [ ] must be fixed on screen (no scrolling)
+        [ ] "ESC" to exit (works on AO3 "?" but not mine)
+        ...at this point, perhaps recreating from scratch may be cheaper...
     */
+    function openModal() {
+        console.log('attemtping to open modal...')
+        const inlineCSS = `
+            display: block;
+            opacity: 0;
+            transition: opacity 250ms ease-in;`
+        ao3Modal.content.insertAdjacentHTML('afterbegin', infoModalHTML)
+        ao3Modal.bg.setAttribute('style', inlineCSS.hidden)
+        ao3Modal.wrapper.setAttribute('style', inlineCSS.hidden)
+        setTimeout(() => {
+            ao3Modal.bg.style.opacity = 1
+            ao3Modal.wrapper.style.opacity = 1
+            ao3Modal.window.style.opacity = 1
+            ao3Modal.window.classList.add('tall')
+        }, 0)
+        setTimeout(() => {
+            ao3Modal.loading.style.display = 'none'
+            ao3Modal.bg.style.opacity = null
+            ao3Modal.bg.style.transition = null
+            ao3Modal.wrapper.style.opacity = null
+            ao3Modal.wrapper.style.transition = null
+        }, 500)
+    }
+    function openModalOLD_backup() {
+        console.log('attemtping to open modal...')
+        ao3Modal.content.insertAdjacentHTML('afterbegin', infoModalHTML)
+        ao3Modal.bg.classList.add('tpf__modal-hidden')
+        ao3Modal.wrapper.classList.add('tpf__modal-hidden')
+        setTimeout(() => {
+            ao3Modal.bg.classList.add('tpf__show-modal')
+            ao3Modal.wrapper.classList.add('tpf__show-modal')
+            ao3Modal.window.classList.add('tall')
+        }, 0)
+        setTimeout(() => {
+            ao3Modal.bg.classList.remove('tpf__modal-hidden', 'tpf__show-modal')
+            ao3Modal.wrapper.classList.remove('tpf__modal-hidden', 'tpf__show-modal')
+            ao3Modal.window.classList.add('tall')
+        }, 500)
+    }
+    // add event listeners to the bg and close button, + esc, then do...
+    function resetModal() {
+        ao3Modal.bg.classList.remove('tpf__modal-hidden', 'tpf__show-modal')
+        ao3Modal.wrapper.classList.remove('tpf__modal-hidden', 'tpf__show-modal')
+    }
+    for (const infoButton of $$('.tpf__menu .question')) {
+        infoButton.addEventListener('click', () => { openModal() })
+    }
 
-    const inputTextFields = $$('.tpf__menu :is(input[type="text"], textarea)'),
-        checkboxFields = $$('.tpf__menu input[type="checkbox"]')
-
-    // BUTTON: Apply filters
+    // BUTTON: Apply filters. If filters are off, turn them on.
     $('.tpf__apply').addEventListener('click', () => { // MAYBE adapt to multiple buttons
         if (!filterIsOn) { toggleFilterStatus() }
         applyFilters()
@@ -369,7 +376,7 @@ TO DO : UI                                                                      
 
     // BUTTON: Clear filters
     $('.tpf__menu .footnote a').addEventListener('click', () => { // MAYBE also the format selectors?
-        for (const field of inputTextFields) { field.value = field.defaultValue }
+        for (const field of textFields) { field.value = field.defaultValue }
         for (const field of checkboxFields) {
             field.checked = false
             field.dispatchEvent(new Event('change'))
@@ -377,6 +384,31 @@ TO DO : UI                                                                      
         showAllWorks()
         GM_deleteValues(['characters', 'relationships', 'excludedCharacters', 'excludedRelationships'])
     })
+
+    // ------------------------------------------------------------------------------------
+    // collapse/expand controls
+    function toggleExpand(target, ...forceExpand) {
+        const expanded = target.container.classList.toggle('expanded', forceExpand[0])
+        target.container.classList.toggle('collapsed', !expanded)
+        target.expander.setAttribute('aria-expanded', expanded)
+        return expanded
+    }
+
+    // toggle filters off/on
+    function toggleFilterStatus() {
+        if (noFilterYet) { applyFilters() }
+        filterIsOn = !filterIsOn
+        setFilterStatus()
+    }
+    function setFilterStatus() {
+        GM_setValue('filterIsOn', filterIsOn) // store value
+        workslistContainer.classList.toggle('show-priority-filters', filterIsOn) // disable the CSS which hides stories
+
+        // format the toggle button
+        filterMenu.toggle.setAttribute('aria-pressed', filterIsOn)
+        filterMenu.toggle.classList.toggle('current', filterIsOn)
+        filterMenu.toggle.textContent = filterIsOn ? 'On' : 'Off'
+    }
 
     function showAllWorks() {
         for (let i = 0; i < works.length; i++) {
@@ -398,10 +430,7 @@ TO DO : UI                                                                      
         GM_setValue('format', $('input[name="format"]:checked').value)
     }
 
-    // SETTINGS
-    settingsMenu.AO3sav.addEventListener('change', function () { GM_setValue('ao3SaviorIsInstalled', this.checked) })
-
-    // Hide works which don't prioritise your characters/relationships. If filters are off, turn them on.
+    // Hide works which don't prioritise your characters/relationships.
     function applyFilters() {
 
         noFilterYet = false
@@ -420,7 +449,7 @@ TO DO : UI                                                                      
             // If AO3 saviour hid the work, add no further warnings
             if (works[i].classList.contains('ao3-savior-work')) { continue } // go to next work
 
-            // Get first n relationships/characters and check if any are in the user settings   // FIXME - move outside loop? Currently redefining the function for each work!
+            // Get first n relationships/characters and check if any are in the user settings   // FIXME - move outside loop? Currently redefining the function on each loop!
             function getFirstNTags(tagClassString, includedTagSet, excludedTagSet) {
                 const checkTags = (includedTagSet.checkTags || excludedTagSet.checkTags)
                 return checkTags && [...works[i].querySelectorAll(tagClassString)]
