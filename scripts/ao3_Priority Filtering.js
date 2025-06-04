@@ -313,7 +313,7 @@ TO DO : UI                                                                      
         window: $('#modal'),
         content: $('#modal .userstuff'),
     }
-    /* FIXME : 
+    /* FIXME :
         [ ] must be vertically centred in viewport
         [ ] must be fixed on screen (no scrolling)
         [ ] "ESC" to exit (works on AO3 "?" but not mine)
@@ -326,8 +326,8 @@ TO DO : UI                                                                      
             opacity: 0;
             transition: opacity 250ms ease-in;`
         ao3Modal.content.insertAdjacentHTML('afterbegin', infoModalHTML)
-        ao3Modal.bg.setAttribute('style', inlineCSS.hidden)
-        ao3Modal.wrapper.setAttribute('style', inlineCSS.hidden)
+        ao3Modal.bg.setAttribute('style', inlineCSS)
+        ao3Modal.wrapper.setAttribute('style', inlineCSS)
         setTimeout(() => {
             ao3Modal.bg.style.opacity = 1
             ao3Modal.wrapper.style.opacity = 1
@@ -336,14 +336,12 @@ TO DO : UI                                                                      
         }, 0)
         setTimeout(() => {
             ao3Modal.loading.style.display = 'none'
-            ao3Modal.bg.style.opacity = null
             ao3Modal.bg.style.transition = null
-            ao3Modal.wrapper.style.opacity = null
             ao3Modal.wrapper.style.transition = null
         }, 500)
     }
     function openModalOLD_backup() {
-        console.log('attempting to open modal...')
+        console.log('attemtping to open modal...')
         ao3Modal.content.insertAdjacentHTML('afterbegin', infoModalHTML)
         ao3Modal.bg.classList.add('tpf__modal-hidden')
         ao3Modal.wrapper.classList.add('tpf__modal-hidden')
