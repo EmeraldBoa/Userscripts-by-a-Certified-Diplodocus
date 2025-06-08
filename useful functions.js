@@ -22,7 +22,7 @@ async function _copyToClipboard(text) {
 }
 
 /** Custom rounding (1-300 exact, 300+ round to nearest 1000, 1k+) with 'k' units */
-function round(n) {
+function _round(n) {
     const rounding = [
         { to: 1, upperLim: 300 },
         { to: 100, upperLim: 1000 },

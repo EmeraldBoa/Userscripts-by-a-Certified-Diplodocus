@@ -28,9 +28,11 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
 TO-DOs (later)
     [ ] list functions and changes from scriptfairy's version
     [ ] modify to use AO3's fold/message. IF Ao3 class appears, add message to the fold. IF not, proceed as normal.
-    [ ] better searching
-        [ ] handle diacritics
-        [ ] wildcards are unintuitive. Rework so you don't need
+    [x] better searching
+        [x] handle diacritics
+        [x] handle spaces/linebreaks
+        [x] test () escapes (do I need two //?)
+        [x] wildcards are unintuitive. Rework so you don't need
           to wrap the *name* in asterisks (make it a WORD)
 https://stackoverflow.com/questions/990904/remove-accents-diacritics-in-a-string-in-javascript/37511463#37511463
 https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/normalize
@@ -51,7 +53,7 @@ TO DO : UI                                                                      
         [x] consistent "TPF-..." class names
         [x] default to collapsed
     [x] get filter info from menu
-        [ ] clean & validate
+        [x] clean & validate
         [x] get regex/wildcards from radio buttons
     [x] run existing code to apply filters
         [x] use apply button to apply/remove filters (now works when all filters are deselected)
@@ -76,6 +78,11 @@ TO DO : UI                                                                      
         [x] ao3sav setting > add GM_set
         [x] update html + css in all files
     [ ] info popup(s)
+        [ ] fade-in, vertical alignment etc
+        [ ] use AO3's modal
+        [x] text content
+        [x] css
+        [x] single info dialog, or multiple? Maybe have one LONG menu with sections which are uncollapsed on load? I like this best!
     [ ] add error messages for incorrect inputs (popup? in menu?)
 
 '------------------------------------------------------------------------------------------------------------------ */
@@ -219,7 +226,282 @@ TO DO : UI                                                                      
                 </dd>
             </dl>
         </fieldset>`
-    const infoModalHTML = `<p>Testing the info popup!</p>`
+    const infoModalHTML = `<div class="tpf__menu popup">
+        <details class="info-section">
+            <summary class="section-head">Basics</summary>
+            <p>The script cannot use AO3's tag system, but instead <strong>matches
+                    the literal tag text</strong>. <br>
+                Add synonyms where necessary
+                (e.g. <span class="search-term">Naruto Uzumaki, Uzumaki Naruto</span>).
+                When searching for a specific relationship, you MUST include both permutations:
+                <span class="search-term">A/B</span> and <span class="search-term">B/A</span>.
+            </p>
+            <ul>
+                <li>Only character and relationship tags are checked.</li>
+                <li>Comma = OR
+                    <table class="matching-basics">
+                        <thead>
+                            <tr>
+                                <th scope="col"></th>
+                                <th scope="col">search term(s)</th>
+                                <th scope="col" class="narrow">N</th>
+                                <th scope="col">result</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>include characters</td>
+                                <td>enkidu, gilgamesh</td>
+                                <td>4</td>
+                                <td>SHOW fics with "Enkidu" OR "Gilgamesh" within the first 4 character tags</td>
+                            </tr>
+                            <tr>
+                                <td>exclude characters</td>
+                                <td>enkidu, gilgamesh</td>
+                                <td>4</td>
+                                <td>HIDE fics with "Enkidu" OR "Gilgamesh" within the first 4 character tags</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </li>
+                <li>
+                    Search is case-insensitive and ignores diacritics (a = á, ä, ā), line breaks and extra spaces.
+                    (Characters like ñ, ł, æ, ø, are letters, not diacritics: searching <span
+                        class="search-term">Inigo</span> will match "<span class="str-match">Ín</span>igo" but not
+                    "<span class="str-match">Íñ</span>igo")
+                </li>
+            </ul>
+            <p>⚠ If you need a blacklist, <a href="https://greasyfork.org/en/scripts/3579-ao3-savior">AO3 savior</a>
+                does it better.</p>
+        </details>
+        <details class="info-section">
+            <summary class="section-head">How to filter</summary>
+            <p>Choose between <strong>*wildcards</strong> (default) or <strong>regex</strong> (more flexible, for
+                advanced users). <br>
+                Wildcards are enough for most purposes:</p>
+            <ul>
+                <li>
+                    <span class="search-term">uzumaki</span> ➜ matches "Naruto <span class="str-match">Uzumaki</span>",
+                    "<span class="str-match">Uzumaki</span> Kushina"
+                    but NOT "Uzumaki<span class="str-match">s</span>"
+                </li>
+                <li>
+                    <span class="search-term">shika*</span> ➜ matches "<span class="str-match">Shika</span>ku" and
+                    "<span class="str-match">Shika</span>maru Nara" but NOT "<span class="str-match">I</span>shikawa"
+                </li>
+            </ul>
+            <p>Regex grants finer control, for example...</p>
+            <ul>
+                <li>alternate spellings: <span class="search-term">[RL]i[zs]a</span> ➜ Riza/Risa/Liza/Lisa
+                </li>
+                <li>limiting options: <span class="search-term">(Arnold|Ace).*Rimmer</span> ➜ don't match John or
+                    Harold
+                    Rimmer</li>
+                <li>exclusions: <span class="search-term">[^(]doctor</span> ➜ match "The&nbsp;Doctor" but NOT
+                    "The&nbsp;Master&nbsp;(Doctor&nbsp;Who)"
+                </li>
+            </ul>
+            <details class="rx-cheatsheet">
+                <summary class="cheatsheet-head">Regex cheatsheet</summary>
+                <h4>Characters</h4>
+                <dl>
+                    <dt>.</dt>
+                    <dd>any character</dd>
+                    <dt>[abc]</dt>
+                    <dd>any of a, b, or c</dd>
+                    <dt>[^abc]</dt>
+                    <dd>not a, b, or c</dd>
+                    <dt>[a-g]</dt>
+                    <dd>character between a &amp; g</dd>
+                </dl>
+                <h4>Operators</h4>
+                <dl>
+                    <dt>a* a+ a?</dt>
+                    <dd>0 or more, 1 or more, 0 or 1 (.* = 0 or more of any character)</dd>
+                    <dt>^abc$</dt>
+                    <dd>start / end of the string (matches the exact tag "abc")</dd>
+                    <dt>ab|cd</dt>
+                    <dd>match ab OR cd</dd>
+                    <dt>(abc)</dt>
+                    <dd>group - e.g. (ab|cd)xy matches abxy or cdxy</dd>
+                </dl>
+                <h4>Special characters</h4>
+                <dl>
+                    <dt>. + * ? <br>^ $ | &#92; <br>{ } ( ) [ ]</dt>
+                    <dd>
+                        <p>can be:</p>
+                        <ul>
+                            <li>replaced with "." (=match any character)</li>
+                            <li>escaped with &#92; ➜ &#92;? </li>
+                            <li>enclosed in [] ➜ [?]</li>
+                        </ul>
+                    </dd>
+                </dl>
+                <p>See <a href="https://regexr.com/">https://regexr.com/</a> for more. Do note that the filter uses
+                    javascript, which does not support all regex options.</p>
+            </details>
+        </details>
+        <details class="info-section">
+            <summary class="section-head">Examples</summary>
+            <h5>Example 1 (with *wildcards)</h5>
+            <table class="matching-examples">
+                <thead>
+                    <tr>
+                        <th scope="col">We want…</th>
+                        <th scope="col">setting</th>
+                        <th scope="col">search term(s)</th>
+                        <th scope="col">N</th>
+                        <th scope="col">matches</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Fics with Leia in the first 3 character tags</td>
+                        <td>Include Characters</td>
+                        <td>leia</td>
+                        <td>3</td>
+                        <td>Leia, Leia Organa, Leia Skywalker</td>
+                    </tr>
+                    <tr>
+                        <td>…that don't have Luke or Han as the main characters (it's fine if they're in second
+                            place)
+                        </td>
+                        <td>Exclude Characters</td>
+                        <td>luke skywalker, han solo</td>
+                        <td>4</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+            <h5>Example 2 (with *wildcards): <br></h5>
+            <table class="matching-examples">
+                <thead>
+                    <tr>
+                        <th scope="col">We want…</th>
+                        <th scope="col">setting</th>
+                        <th scope="col">search term(s)</th>
+                        <th scope="col">N</th>
+                        <th scope="col">matches</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>relationships with Servalan</td>
+                        <td>Include Rels.</td>
+                        <td>servalan</td>
+                        <td>1</td>
+                        <td>Servalan / Kerr Avon, Travis &amp; Servalan...</td>
+                    </tr>
+                </tbody>
+            </table>
+            <h5>Example 3 (with regex): <br></h5>
+            <table class="matching-examples">
+                <thead>
+                    <tr>
+                        <th scope="col">We want…</th>
+                        <th scope="col">setting</th>
+                        <th scope="col">search term(s)</th>
+                        <th scope="col">N</th>
+                        <th scope="col">matches</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><em>platonic</em> relationships with Servalan</td>
+                        <td>Include Rels.</td>
+                        <td>[^/]?servalan[^/]?</td>
+                        <td>1</td>
+                        <td>relationships containing "Servalan" but not "/"</td>
+                    </tr>
+                </tbody>
+            </table>
+            <h5>Example 4 (with regex): <br>
+                you don't want to read fics focusing on original
+                characters, but don't mind if they're part of the story.</h5>
+            <table class="matching-examples">
+                <thead>
+                    <tr>
+                        <th scope="col">We want…</th>
+                        <th scope="col">setting</th>
+                        <th scope="col">search term(s)</th>
+                        <th scope="col">N</th>
+                        <th scope="col">matches</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>to HIDE fics with OCs in first or second place</td>
+                        <td>Exclude Characters</td>
+                        <td>original.*character, O[FM]?C</td>
+                        <td>1</td>
+                        <td>Original Characters, Original Female Character, OC, OMC…</td>
+                    </tr>
+                </tbody>
+            </table>
+            <h5>Example 5a (with *wildcards)</h5>
+            <table class="matching-examples">
+                <thead>
+                    <tr>
+                        <th scope="col">We want…</th>
+                        <th scope="col">setting</th>
+                        <th scope="col">search term(s)</th>
+                        <th scope="col">N</th>
+                        <th scope="col">matches</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Katara/... as the first ship</td>
+                        <td>Include Rels.</td>
+                        <td>/*katara, katara*/</td>
+                        <td>1</td>
+                        <td>Aang / Katara, Katara / Toph, Katara / Zuko...</td>
+                    </tr>
+                    <tr>
+                        <td>...EXCEPT Katara/Aang (okay in the background)</td>
+                        <td>Exclude Rels.</td>
+                        <td>aang/katara, katara/aang</td>
+                        <td>2</td>
+                        <td>Aang / Katara, Katara / Aang</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>Wait! In some fandoms this would work, but Avatar
+                uses "Kataang", "Zutara", etc. <span class="search-term">"kat*, *ara"</span> would match those but
+                also,
+                e.g., "<span class="str-match">Kat</span>ara &amp; Sokka". <br>
+                We could list them all, or...
+            </p>
+            <h5>Example 5b (with regex)</h5>
+            <table class="matching-examples">
+                <thead>
+                    <tr>
+                        <th scope="col">We want…</th>
+                        <th scope="col">setting</th>
+                        <th scope="col">search term(s)</th>
+                        <th scope="col">N</th>
+                        <th scope="col">matches</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Katara/... as the first ship </td>
+                        <td>Include Rels.</td>
+                        <td>/.*katara, katara.*/, ^kat[a-z]+$, ^[a-z]+tara$</td>
+                        <td>1</td>
+                        <td>as in 5a + "Kat..." followed by any letters without spaces + "...tara".</td>
+                    </tr>
+                    <tr>
+                        <td>...EXCEPT Katara/Aang (fine if it's in the background)</td>
+                        <td>Exclude Rels.</td>
+                        <td>aang / katara, katara / aang</td>
+                        <td>2</td>
+                        <td>as in 5a</td>
+                    </tr>
+                </tbody>
+            </table>
+        </details>
+    </div>`
 
     // add collapsible menu directly above AO3's filter sidebar. Get DOM objects.
     const filterSidebar = $('#work-filters')
@@ -314,34 +596,41 @@ TO DO : UI                                                                      
         content: $('#modal .userstuff'),
     }
     /* FIXME :
-        [ ] must be vertically centred in viewport
-        [ ] must be fixed on screen (no scrolling)
-        [ ] "ESC" to exit (works on AO3 "?" but not mine)
+        [ ] must be vertically centred in viewport > calculate "top" px
+        [x] must be fixed on screen (no scrolling) > add "margin-right: 14px; overflow: hidden; height: 333px;" to body style
+        [ ] "ESC" to exit (works on AO3's "?" but not mine)
         ...at this point, perhaps recreating from scratch may be cheaper...
     */
+    // Helper function: set multiple CSS attributes
+    function setStyles(el, styles = {}) {
+        Object.assign(el.style, styles)
+    }
     function openModal() {
-        console.log('attempting to open modal...')
-        const inlineCSS = `
-            display: block;
-            opacity: 0;
-            transition: opacity 250ms ease-in;`
+        debugLog('attempting to open modal...')
+        // add content
         ao3Modal.content.insertAdjacentHTML('afterbegin', infoModalHTML)
-        ao3Modal.bg.setAttribute('style', inlineCSS)
-        ao3Modal.wrapper.setAttribute('style', inlineCSS)
+        ao3Modal.window.querySelector('.title').textContent = 'Tag priority filters' // select each time: I think AO3 rebuilds this element on close
+
+        // CSS animation // FIXME: need to set ao3Modal.wrapper.style.top = '???px'
+        // eslint-disable-next-line @stylistic/quote-props
+        setStyles(document.body, { 'margin-right': '14px', overflow: 'hidden' }) // prevents scrolling! but numbers... how. // FIXME height: '327px' (viewport height I think)
+        for (const el of [ao3Modal.bg, ao3Modal.wrapper]) {
+            setStyles(el, { display: 'block', opacity: 0, transition: 'opacity 250ms ease-in' })
+        }
+        ao3Modal.loading.style.display = 'none'
         setTimeout(() => {
-            ao3Modal.bg.style.opacity = 1
-            ao3Modal.wrapper.style.opacity = 1
-            ao3Modal.window.style.opacity = 1
+            for (const el of [ao3Modal.bg, ao3Modal.wrapper, ao3Modal.window]) { el.style.opacity = 1 }
             ao3Modal.window.classList.add('tall')
         }, 0)
         setTimeout(() => {
-            ao3Modal.loading.style.display = 'none'
-            ao3Modal.bg.style.transition = null
-            ao3Modal.wrapper.style.transition = null
+            for (const el of [ao3Modal.bg, ao3Modal.wrapper]) {
+                el.style.removeProperty('transition')
+                el.style.removeProperty('opacity')
+            }
         }, 500)
     }
     function openModalOLD_backup() {
-        console.log('attemtping to open modal...')
+        debugLog('attempting to open modal...')
         ao3Modal.content.insertAdjacentHTML('afterbegin', infoModalHTML)
         ao3Modal.bg.classList.add('tpf__modal-hidden')
         ao3Modal.wrapper.classList.add('tpf__modal-hidden')
@@ -447,30 +736,13 @@ TO DO : UI                                                                      
             // If AO3 saviour hid the work, add no further warnings
             if (works[i].classList.contains('ao3-savior-work')) { continue } // go to next work
 
-            // Get first n relationships/characters and check if any are in the user settings   // FIXME - move outside loop? Currently redefining the function on each loop!
-            function getFirstNTags(tagClassString, includedTagSet, excludedTagSet) {
-                const checkTags = (includedTagSet.checkTags || excludedTagSet.checkTags)
-                return checkTags && [...works[i].querySelectorAll(tagClassString)]
-                    .slice(0, Math.max(includedTagSet.tagLim, excludedTagSet.tagLim)).map(tag => tag.textContent)
-            }
-            function matchTags(tagSet, tagsToCheck) {
-                if (!tagSet.checkTags) { return tagSet.defaultMatchResult } // show work (TRUE) for included tags, hide (FALSE) for excluded
-                tagsToCheck = tagsToCheck.slice(0, tagSet.tagLim)
-                for (let userTag of tagSet.pattern) {
-                    const pattern = (format === 'wildcard') ? wildcardPattern(userTag) : userTag // FIX magic string
-                    const rx = RegExp(pattern, 'gi')
-                    for (let workTag of tagsToCheck) {
-                        if (rx.test(workTag)) { return true }
-                    }
-                }
-                return false
-            }
-            const firstNchars = getFirstNTags('.characters', characters, excludedCharacters),
-                firstNrels = getFirstNTags('.relationships', relationships, excludedRelationships),
-                charMatch = matchTags(characters, firstNchars),
-                relMatch = matchTags(relationships, firstNrels),
-                xCharMatch = matchTags(excludedCharacters, firstNchars),
-                xRelMatch = matchTags(excludedRelationships, firstNrels)
+            // Get first n relationships/characters and check if any are in the user settings
+            const firstNchars = getFirstNTags(works[i], '.characters', characters, excludedCharacters),
+                firstNrels = getFirstNTags(works[i], '.relationships', relationships, excludedRelationships),
+                charMatch = matchTags(characters, firstNchars, format),
+                relMatch = matchTags(relationships, firstNrels, format),
+                xCharMatch = matchTags(excludedCharacters, firstNchars, format),
+                xRelMatch = matchTags(excludedRelationships, firstNrels, format)
 
             // Show work if it prioritises your tags and none of the blacklisted tags. Otherwise, hide it.
             const foundMatch = relMatch && charMatch && !xRelMatch && !xCharMatch
@@ -494,20 +766,51 @@ TO DO : UI                                                                      
         }
     }
 
+    // Get the first N tags (where N = largest of the two tag limits). Remove diacritics.
+    function getFirstNTags(work, tagClassSelector, includedTagSet, excludedTagSet) {
+        const checkTags = (includedTagSet.checkTags || excludedTagSet.checkTags)
+        return checkTags && [...work.querySelectorAll(tagClassSelector)]
+            .slice(0, Math.max(includedTagSet.tagLim, excludedTagSet.tagLim))
+            .map(tag => removeDiacriticsAndExtraSpaces(tag.textContent))
+    }
+
+    // Check if the selected tags match the given filter
+    function matchTags(tagSet, tagsToCheck, format) {
+        if (!tagSet.checkTags) { return tagSet.defaultMatchResult } // show work (TRUE) for included tags, hide (FALSE) for excluded
+        tagsToCheck = tagsToCheck.slice(0, tagSet.tagLim)
+        for (const userTag of tagSet.pattern) {
+            const pattern = (format === 'wildcard') ? wildcardPattern(userTag) : userTag // FIX magic string
+            const rx = RegExp(removeDiacriticsAndExtraSpaces(pattern), 'gi')
+            for (const workTag of tagsToCheck) {
+                if (rx.test(workTag)) { return true }
+            }
+        }
+        return false
+    }
+
+    // Format wildcard * search pattern (escaping all other special characters)
+    function wildcardPattern(pattern) {
+        pattern = '\b' + pattern
+            .replaceAll(/[.+?^=!:${}()|\][/\\]/g, '\\$&')
+            .replaceAll('*', '.*')
+            + '\b'
+        return pattern
+    }
+
+    // Remove diacritics (this will not affect actual letters like ñ) and extra spaces
+    // https://www.davidbcalhoun.com/2019/matching-accented-strings-in-javascript/
+    function removeDiacriticsAndExtraSpaces(str) {
+        return str
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/gi, '')
+            .replace(/[\s\n]{2,}/g, ' ')
+    }
+
     function createNewElement(elementType, className, textContent) {
         const el = document.createElement(elementType)
         el.className = className
         el.textContent = textContent
         return el
-    }
-
-    // Format wildcard * search pattern (escaping all other special characters)
-    function wildcardPattern(pattern) {
-        pattern = '^' + pattern
-            .replaceAll(/[.+?^=!:${}()|\][/\\]/g, '\\$&')
-            .replaceAll('*', '.*')
-            + '$'
-        return pattern
     }
 
     const hiderCss = `
@@ -542,6 +845,107 @@ TO DO : UI                                                                      
         ol.work.index.group:not(.show-priority-filters) > .hide-reasons {
             display: none;
         }`
+
+    const infoPopupCss = `.tpf__menu.popup {
+        font-size: 1em;
+        & .search-term {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        & .str-match {
+            text-decoration: underline;
+        }
+        & .section-head {
+            border-bottom: solid 2px firebrick;
+            font-family: Georgia, serif;
+            font-size: 1.15em;
+            line-height: 1.5em;
+            font-weight: 700;
+        }       
+        & .info-section {
+            margin: 0.9em 0;
+            & > :last-child {
+                margin-bottom: 2em; /*collapsible spacing*/
+            }
+        }
+
+        & .rx-cheatsheet {
+            padding-left: 1.5em;
+            border-left: solid #dadada 4px;
+            & summary.cheatsheet-head {
+                margin-left: -1.5em;
+                background-color: #dadada;
+                padding: 0.2em;
+            }
+            & h4 {
+                margin-top: 1em;
+            }
+            & dl {
+                display: grid;
+                grid-template-columns: 6.5em 1fr;
+                padding-left: 1em;
+                align-items: center;
+                & dt {
+                    background-color: #FCF5EB;
+                    font-weight: 700;
+                    font-family: 'Courier New', Courier, monospace;
+                    padding-left: 0.4em;
+                    margin-right: 1em;
+                }
+            }
+            & p, ul {
+                margin: 0;
+                padding: unset inherit;
+            }
+        }
+        & li > table {
+            margin: 0.5em 0; /*spacing around table*/
+        }
+        & table {
+            table-layout: fixed;
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8em;
+            background-color:floralwhite;
+            & th, td {
+                padding: 0.4em;
+                &.narrow {
+                    width: 1em;
+                }
+            }
+            &.matching-basics {
+                border: 1px solid cadetblue;
+                thead {
+                    background-color: lightblue;
+                    & th:nth-child(1), th:nth-child(2) { width: 8em; }
+                    & th:nth-child(3) { width: 1em;}
+                    & th:nth-child(2), th:nth-child(3) { text-align: center; }
+                }
+                & td:nth-child(1), td:nth-child(2)  {
+                    font-family: 'Courier New', Courier, monospace;
+                    font-size: 1.1em;
+                    text-align: center;
+                }
+            }
+            &.matching-examples {
+                border: 1px solid firebrick;
+                & thead {
+                    background-color: lightpink;
+                    & th:nth-child(2) { width: 7em;}
+                    & th:nth-child(4) { width: 1em;}
+                }
+                & th + th, td + td {
+                    border-left: 1px solid palevioletred;
+                }
+                & td:nth-child(2), td:nth-child(3), td:nth-child(4) {
+                    font-family: 'Courier New', Courier, monospace;
+                    font-size: 1.1em;
+                }
+                & td:nth-child(4) {
+                    text-align: center;
+                }
+            }
+        }
+    }`
 
     GM_addStyle(hiderCss + `
 .tpf__menu {
@@ -688,7 +1092,8 @@ TO DO : UI                                                                      
     & .footnote {
         padding-right: unset;
     }
-}`)
+}`
+        + infoPopupCss)
 
     function debugLog(input) {
         if (enableVerboseLogging) { console.log(input) }

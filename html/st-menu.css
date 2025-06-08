@@ -1,42 +1,50 @@
  /*GENERAL AO3 SETTINGS - FOR PREVIEW PURPOSES ONLY*/
-body {
+ body {
     font-family: "Lucida Grande", "Lucida Sans Unicode", Verdana, Helvetica, sans-serif;
-}
-h3, h4 {
-    font-family: Georgia, serif;
-}
-.tpf__filters h4 {
-    display: inline;
-    font-weight: 700;
-}
-input[type=checkbox]:checked + .indicator + span , input[type=radio]:checked + .indicator + span {
-    font-weight: 700;
-}
-legend {
-    display:none;
-}
-.expander {
-	background: url("https://archiveofourown.org/images/arrow-right.gif") left center no-repeat;
-	border: none;
-	padding: 0.25em 0 0.25em 14px;
-}
-.landmark {
-    font-style: 0;
-    opacity: 0;
-	font-size: 0;
-	line-height: 0;
-	height: 0;
-	margin: 0;
-	clear: both;
-	color: transparent;
-	opacity: 0;
-}
-.actions button:hover {
-    color: #900;
-}
-.footnote {
-	font-size: 0.75em;
-	float: right;
+    h3, h4 {
+        font-family: Georgia, serif;
+    }
+    .tpf__filters h4 {
+        display: inline;
+        font-weight: 700;
+    }
+    input[type=checkbox]:checked + .indicator + span , input[type=radio]:checked + .indicator + span {
+        font-weight: 700;
+    }
+    legend {
+        display:none;
+    }
+    .expander {
+        background: url("https://archiveofourown.org/images/arrow-right.gif") left center no-repeat;
+        border: none;
+        padding: 0.25em 0 0.25em 14px;
+        &.expanded {
+            background-image: url("https://archiveofourown.org/images/arrow-down.gif");
+        }
+    }
+    .landmark {
+        font-style: 0;
+        opacity: 0;
+        font-size: 0;
+        line-height: 0;
+        height: 0;
+        margin: 0;
+        clear: both;
+        color: transparent;
+        opacity: 0;
+    }
+    .actions button:hover {
+        color: #900;
+    }
+    .footnote {
+        font-size: 0.75em;
+        float: right;
+    }
+    .popup {
+        height: 600px; /* remove */
+        padding: 0.8em;
+        overflow: auto;
+    }
 }
 
 /*CUSTOM MENU*/
@@ -75,6 +83,26 @@ legend {
                 box-shadow: inset 2px 2px 2px #bbb;
             }
         }
+    }
+    & #tpf__config-head {
+        display: flex;
+        justify-content: space-between;
+        & .expander {
+            font-size: 1.1em;
+        }
+        & .footnote {
+            min-width: fit-content;
+        }
+    }
+    & .tpf__config.expandable {
+        background-color: #FCF5EB;
+        box-shadow: inset 0px 7px 7px -7px #999;
+        padding: 1em 0.5em;
+        box-sizing: expandable;
+        display: grid;
+        row-gap: 0.5em;
+        & .save::before { content: "💾" ; float:left }
+        & .load::before { content: "🠋" ; text-decoration: underline; float:left}
     }
 
     & section {
@@ -140,7 +168,7 @@ legend {
         height: auto;
     }
     & .question {
-        padding:0 0.425em;
+        padding:0 0.55em;
         margin: 0 1px;
         border: 1px solid;
         border-radius: 0.75em;
@@ -153,103 +181,60 @@ legend {
     & .footnote {
         padding-right: unset;
     }
-    
-    /* INITIAL FILTER MENU */
-    &.tpf__filters {
-        background-color: antiquewhite;
-        padding: 0.4em;
-        & h4 {
-            display: inline-block;
-        }
-    }
-    & textarea:read-only, input[type=text]:read-only {
-        background-color:rgb(251, 241, 231);
-    }
-    & .tpf__tag-list {
-        resize: vertical;
-        width: 100%;
-        box-sizing: border-box;
-        min-height: unset;
-        padding: 0.3em;
-        font-family: monospace;
-    }
-    & input[type="checkbox"], input[type="radio"] {
-        vertical-align: text-top /*align with label text*/
-    }
-    & label {
-        white-space: nowrap;
-    }
-    & .tpf__within {
-        text-align: right;
-    }
-    & .tag-lim {
-        width: 1.1em;
-    }
-    & .question {
-        padding:0 6px;
-        margin: 0 1px;
-        border: 1px solid;
-        border-radius: 0.75em;
-        font-size: 0.75em;
-        vertical-align: super;
-        cursor: help;
-        font-family: Georgia, serif;
-        font-weight: bold;
-    }
-
-    /**/
-    & #tpf__config-head {
-        & .expander {
-            font-size: 1.1em;
-        }
-    }
-    & .tpf__config {
-        display: grid;
-        row-gap: 0.3em;
-        background-color: floralwhite;
-        
-    }
 
     &.popup {
-        display: grid;
-        row-gap: 0.3em;
-        padding: 0.8em;
-        &.config {
-            background-color:azure;
-            max-width: 17em;
-        }
-        &.info {
-            font-size: 1em;
-            background-color:floralwhite;
-            max-width: 50em;
-            height: 650px;
-        }
-        & .head {
-            display: flex;
-            justify-content: space-between;
-            border-bottom: solid 2px firebrick;
-        }
-        & section:not(.head) > h3 {
-            display: block;
-            border-bottom: solid 2px firebrick;
-        }
-        & button {
-            &.exit-btn {
-                width: 1.5em;
-                vertical-align: top;
-                &:hover {
-                    color: firebrick;
-                }
-            }
-        }
-        & .underline {
-            text-decoration: underline;
-        }
+        font-size: 1em;
         & .search-term {
             font-family: 'Courier New', Courier, monospace;
         }
-        & .scrollable {
-            overflow: auto;
+        & .str-match {
+            text-decoration: underline;
+        }
+        & summary {
+            cursor: default;
+        }
+        & .section-head {
+            border-bottom: solid 2px firebrick;
+            font-family: Georgia, serif;
+            font-size: 1.15em;
+            line-height: 1.5em;
+            font-weight: 700;
+        }       
+        & .info-section {
+            margin: 0.9em 0;
+            & > :last-child {
+                margin-bottom: 2em; /*collapsible spacing*/
+            }
+        }
+
+        & .rx-cheatsheet {
+            padding-left: 1.5em;
+            border-left: solid #dadada 4px;
+            & summary.cheatsheet-head {
+                margin-left: -1.5em;
+                background-color: #dadada;
+                padding: 0.2em;
+            }
+            & h4 {
+                margin-top: 1em;
+            }
+            & dl {
+                display: grid;
+                grid-template-columns: 6.5em 1fr;
+                padding-left: 1em;
+                align-items: center;
+                & dt {
+                    background-color: #FCF5EB;
+                    font-weight: 700;
+                    font-family: 'Courier New', Courier, monospace;
+                    padding-left: 0.4em;
+                    margin-right: 1em;
+                }
+            }
+            & p, ul {
+                margin: 0;
+                padding: unset inherit;
+            }
         }
         & li > table {
             margin: 0.5em 0; /*spacing around table*/
@@ -259,25 +244,28 @@ legend {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.8em;
+            background-color:floralwhite;
             & th, td {
                 padding: 0.4em;
                 &.narrow {
                     width: 1em;
                 }
             }
-            &.match-exclude{
+            &.matching-basics {
                 border: 1px solid cadetblue;
                 thead {
                     background-color: lightblue;
                     & th:nth-child(1), th:nth-child(2) { width: 8em; }
+                    & th:nth-child(3) { width: 1em;}
                 }
+                & th:nth-child(2), th:nth-child(3) { text-align: center; }
                 & td:nth-child(1), td:nth-child(2)  {
                     font-family: 'Courier New', Courier, monospace;
-                    font-size: 0.9rem;
+                    font-size: 1.1em;
                     text-align: center;
                 }
             }
-            &:not(.match-exclude){
+            &.matching-examples {
                 border: 1px solid firebrick;
                 & thead {
                     background-color: lightpink;
@@ -289,7 +277,7 @@ legend {
                 }
                 & td:nth-child(2), td:nth-child(3), td:nth-child(4) {
                     font-family: 'Courier New', Courier, monospace;
-                    font-size: 0.9rem;
+                    font-size: 1.1em;
                 }
                 & td:nth-child(4) {
                     text-align: center;
@@ -299,7 +287,3 @@ legend {
     }
 
 }
-/* use AO3's own CSS for the checkboxes: 
-.filters.indicator
-.filters.indicator.exclude
-*/
