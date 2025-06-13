@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AO3: Priority tag filter
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.4.1
+// @version      1.4.2
 // @description  Hide work if chosen tags are late in sequence, or if blacklisted tags are early
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/works*
@@ -77,12 +77,13 @@ TO DO : UI                                                                      
         [x] basic set up
         [x] ao3sav setting > add GM_set
         [x] update html + css in all files
-    [ ] info popup(s)
-        [ ] fade-in, vertical alignment etc
-        [ ] use AO3's modal
+    [x] info popup(s)
+        [x] fade-in, vertical alignment etc
+        [x] use AO3's modal
         [x] text content
         [x] css
         [x] single info dialog, or multiple? Maybe have one LONG menu with sections which are uncollapsed on load? I like this best!
+        [ ] MAYBE: v2: own dialog, or v3: add text & hide AO3's (maybe with a style - invisible until replaced!)
     [ ] add error messages for incorrect inputs (popup? in menu?)
 
 '------------------------------------------------------------------------------------------------------------------ */
@@ -587,37 +588,37 @@ TO DO : UI                                                                      
     filterMenu.toggle.addEventListener('click', toggleFilterStatus)
     settingsMenu.AO3sav.addEventListener('change', function () { GM_setValue('ao3SaviorIsInstalled', this.checked) })
 
-    // BUTTON: info popup
+    // BUTTON: info popup (with AO3's own modal: manually replicate the open, allow AO3 to handle close)
+    for (const infoButton of $$('.tpf__menu .question')) {
+        infoButton.addEventListener('click', openAo3Modal)
+    }
+
     const ao3Modal = {
         bg: $('#modal-bg'),
         loading: $('#modal-bg .loading'),
         wrapper: $('#modal-wrap'),
         window: $('#modal'),
         content: $('#modal .userstuff'),
+        closeBtn: $('#modal .action.modal-closer'),
     }
-    /* FIXME :
-        [ ] must be vertically centred in viewport > calculate "top" px
-        [x] must be fixed on screen (no scrolling) > add "margin-right: 14px; overflow: hidden; height: 333px;" to body style
-        [ ] "ESC" to exit (works on AO3's "?" but not mine)
-        ...at this point, perhaps recreating from scratch may be cheaper...
-    */
-    // Helper function: set multiple CSS attributes
-    function setStyles(el, styles = {}) {
-        Object.assign(el.style, styles)
-    }
-    function openModal() {
-        debugLog('attempting to open modal...')
-        // add content
-        ao3Modal.content.insertAdjacentHTML('afterbegin', infoModalHTML)
-        ao3Modal.window.querySelector('.title').textContent = 'Tag priority filters' // select each time: I think AO3 rebuilds this element on close
 
-        // CSS animation // FIXME: need to set ao3Modal.wrapper.style.top = '???px'
-        // eslint-disable-next-line @stylistic/quote-props
-        setStyles(document.body, { 'margin-right': '14px', overflow: 'hidden' }) // prevents scrolling! but numbers... how. // FIXME height: '327px' (viewport height I think)
-        for (const el of [ao3Modal.bg, ao3Modal.wrapper]) {
-            setStyles(el, { display: 'block', opacity: 0, transition: 'opacity 250ms ease-in' })
+    function openAo3Modal() {
+        debugLog('attempting to open modal...')
+        ao3Modal.content.insertAdjacentHTML('afterbegin', infoModalHTML) // add content
+        ao3Modal.window.querySelector('.title').textContent = 'Tag priority filters' // select each time: I think AO3 rebuilds this element on close
+        window.addEventListener('keydown', closeAo3Modal)
+
+        // CSS: replicate AO3's inline styles. The default close event clears them.
+        const scrollbarWidth = `${window.innerWidth - document.body.clientWidth}px`
+        for (const [el, ruleset] of [ // eslint-disable-next-line @stylistic/quote-props
+            [document.body, { 'margin-right': scrollbarWidth, overflow: 'hidden', height: '100vh' }], // prevent scrolling!
+            [ao3Modal.bg, { display: 'block', opacity: 0, transition: 'opacity 150ms ease-in' }],
+            [ao3Modal.wrapper, { display: 'block', opacity: 0, transition: 'opacity 150ms ease-in', top: `${window.scrollY}px` }], // position on page
+        ]) {
+            Object.assign(el.style, ruleset)
         }
         ao3Modal.loading.style.display = 'none'
+
         setTimeout(() => {
             for (const el of [ao3Modal.bg, ao3Modal.wrapper, ao3Modal.window]) { el.style.opacity = 1 }
             ao3Modal.window.classList.add('tall')
@@ -627,31 +628,13 @@ TO DO : UI                                                                      
                 el.style.removeProperty('transition')
                 el.style.removeProperty('opacity')
             }
-        }, 500)
+        }, 300)
     }
-    function openModalOLD_backup() {
-        debugLog('attempting to open modal...')
-        ao3Modal.content.insertAdjacentHTML('afterbegin', infoModalHTML)
-        ao3Modal.bg.classList.add('tpf__modal-hidden')
-        ao3Modal.wrapper.classList.add('tpf__modal-hidden')
-        setTimeout(() => {
-            ao3Modal.bg.classList.add('tpf__show-modal')
-            ao3Modal.wrapper.classList.add('tpf__show-modal')
-            ao3Modal.window.classList.add('tall')
-        }, 0)
-        setTimeout(() => {
-            ao3Modal.bg.classList.remove('tpf__modal-hidden', 'tpf__show-modal')
-            ao3Modal.wrapper.classList.remove('tpf__modal-hidden', 'tpf__show-modal')
-            ao3Modal.window.classList.add('tall')
-        }, 500)
-    }
-    // add event listeners to the bg and close button, + esc, then do...
-    function resetModal() {
-        ao3Modal.bg.classList.remove('tpf__modal-hidden', 'tpf__show-modal')
-        ao3Modal.wrapper.classList.remove('tpf__modal-hidden', 'tpf__show-modal')
-    }
-    for (const infoButton of $$('.tpf__menu .question')) {
-        infoButton.addEventListener('click', () => { openModal() })
+
+    function closeAo3Modal(e) {
+        const modalIsOpen = (ao3Modal.bg.style.display != 'none')
+        if (!modalIsOpen || e.key === 'Escape') { window.removeEventListener('keydown', closeAo3Modal) } // Remove event listener if the modal is hidden. Bit of a // HACK
+        if (modalIsOpen && e.key === 'Escape') { ao3Modal.closeBtn.click() }
     }
 
     // BUTTON: Apply filters. If filters are off, turn them on.
