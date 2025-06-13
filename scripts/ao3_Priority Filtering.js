@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AO3: Priority tag filter
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.4.2
+// @version      1.4.3
 // @description  Hide work if chosen tags are late in sequence, or if blacklisted tags are early
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/works*
@@ -25,66 +25,27 @@
 Currently active on works/* and tags/* pages. To also enable on user pages, add the following line in the header:
     // @match        http*://archiveofourown.org/users/*
 
-TO-DOs (later)
-    [ ] list functions and changes from scriptfairy's version
+TO-DOs
+    [x] clean code
     [ ] modify to use AO3's fold/message. IF Ao3 class appears, add message to the fold. IF not, proceed as normal.
-    [x] better searching
-        [x] handle diacritics
-        [x] handle spaces/linebreaks
-        [x] test () escapes (do I need two //?)
-        [x] wildcards are unintuitive. Rework so you don't need
-          to wrap the *name* in asterisks (make it a WORD)
-https://stackoverflow.com/questions/990904/remove-accents-diacritics-in-a-string-in-javascript/37511463#37511463
-https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/normalize
-https://www.davidbcalhoun.com/2019/matching-accented-strings-in-javascript/
-    [x] test with "GM_getValue / GM_setValue". Would require [x] means "done in HTML"
-        [x] a menu (to display and edit saved settings)
-        [x] pop-up / expansion toggle showing regex hints
-        [x] button to enable/disable?
-        [x] "apply" (re-run the script)
-        [x] option to save settings to .txt file?
-    IF I make it an extension (which I'd have to, to save the files, I think), then
+    [ ] redo "hider" CSS/html (maybe to match AO3sav folding - hide/unhide)
+    [ ] remove unused GM_ functions. Test GM_getValues and GM_setValues in ViolentMonkey.
+
+TO DO : Requires beta testing   
+
+    [ ] Filter fields default to locked. Is this intuitive? (ALT: select (check) if you click on the textbox. Could be annoying, esp. when it comes to deselects.)
+    [ ] Do I need another "apply" button at the top?
+    [ ] Add error messages for incorrect inputs (popup? in menu?)
+
+// MAYBE / to do later 
+
+    [ ] info popup redesign MAYBE: v2: own dialog, or v3: add text & hide AO3's (maybe with a style - invisible until replaced!)
+    [ ] CONFIG: option to save settings to .txt file? IF I make it an extension (which I'd have to, to save the files, I think), then
         [ ] save current settings to extension
         [ ] dropdown to choose between saved settings
-
-TO DO : UI                                                                                                         (ongoing)
-
-    [x] add menu (HTML + CSS + JS for fold/unfold)
-        [x] consistent "TPF-..." class names
-        [x] default to collapsed
-    [x] get filter info from menu
-        [x] clean & validate
-        [x] get regex/wildcards from radio buttons
-    [x] run existing code to apply filters
-        [x] use apply button to apply/remove filters (now works when all filters are deselected)
-        [x] check/enable toggle button
-        [x] toggle button needs to work with "apply" (prevent user from applying filter when filters are hidden)
-        [x] add "clear filters" button
-        [x] default fields to locked. // TODO: test if this makes for an intuitive experience.
-                or: select (check) if you click on the textbox. Could be annoying, esp. when it comes to deselects.
-        [ ] add another "apply" button at top (MAYBE)
-        [ ] split to its own form (MAYBE - needs to work with AO3)
-          reason: solve issue where "return" submits AO3's filters and reloads the page!
-            looks like it won't work (absolute positioning - don't think I can put a form element above it)
-    [ ] redo "hider" CSS/html (maybe to match AO3sav folding - hide/unhide)
-        [x] add AO3sav timer to settings
-    [x] save/load with GM_get and GM_set
-        [x] save result of "clear filters"
-        [x] todo: test what happens if I hit "clear filters" in the second form:
-            does it clear the priority form? (could affect the GM_get/set): answer: NO!
-        [ ] remove unused GM_ functions. Test GM_getValues and GM_setValues in ViolentMonkey.
-    [x] config section
-        [x] basic set up
-        [x] ao3sav setting > add GM_set
-        [x] update html + css in all files
-    [x] info popup(s)
-        [x] fade-in, vertical alignment etc
-        [x] use AO3's modal
-        [x] text content
-        [x] css
-        [x] single info dialog, or multiple? Maybe have one LONG menu with sections which are uncollapsed on load? I like this best!
-        [ ] MAYBE: v2: own dialog, or v3: add text & hide AO3's (maybe with a style - invisible until replaced!)
-    [ ] add error messages for incorrect inputs (popup? in menu?)
+    [ ] split menu to its own form (MAYBE - needs to work with AO3)
+            Reason: solve issue where "return" submits AO3's filters and reloads the page!
+            Looks like it won't work (absolute positioning - don't think I can put a form element above it)
 
 '------------------------------------------------------------------------------------------------------------------ */
 (function () {
@@ -523,7 +484,7 @@ TO DO : UI                                                                      
 
     // DEFINE FILTER FIELDS + GETTERS
     class tagBlock { // set elements, get values. If the checkbox is unselected, disable the other fields.
-        constructor(includeOrExclude, tagType) {
+        constructor(includeOrExclude, tagType, storedVals) {
             const tagBlock = $(`.tpf__tag-block.${includeOrExclude}.${tagType}`)
             this.defaultMatchResult = (includeOrExclude === 'include') // match = true for includes, match = false for excludes
             this.checkboxField = tagBlock.querySelector('input[type=checkbox]')
@@ -534,9 +495,7 @@ TO DO : UI                                                                      
                 this.textareaField.readOnly = !tagBlockEnabled
                 this.tagLimitField.readOnly = !tagBlockEnabled
             })
-        }
 
-        loadFromStorage(storedVals) {
             if (!storedVals) { return }
             this.checkboxField.checked = storedVals.check
             this.textareaField.value = storedVals.pattern
@@ -552,11 +511,6 @@ TO DO : UI                                                                      
         get checkTags() { return this.check && this.isValid } // ok to commit
     }
 
-    const characters = new tagBlock('include', 'characters'),
-        relationships = new tagBlock('include', 'relationships'),
-        excludedCharacters = new tagBlock('exclude', 'characters'),
-        excludedRelationships = new tagBlock('exclude', 'relationships')
-
     // SET INITIAL VALUES ------------------------------------------------------------
     // menu
     settingsMenu.AO3sav.checked = stored.ao3SaviorIsInstalled
@@ -564,11 +518,11 @@ TO DO : UI                                                                      
     let filterIsOn = stored.filterIsOn
     setFilterStatus()
 
-    // load saved filters
-    characters.loadFromStorage(stored.characters)
-    relationships.loadFromStorage(stored.relationships)
-    excludedCharacters.loadFromStorage(stored.excludedCharacters)
-    excludedRelationships.loadFromStorage(stored.excludedRelationships)
+    // define & populate filter fields
+    const characters = new tagBlock('include', 'characters', stored.characters),
+        relationships = new tagBlock('include', 'relationships', stored.relationships),
+        excludedCharacters = new tagBlock('exclude', 'characters', stored.excludedCharacters),
+        excludedRelationships = new tagBlock('exclude', 'relationships', stored.excludedRelationships)
     $(`.tpf__settings input[value=${stored.format}]`).checked = true
 
     // Filter on load: add 20ms delay to prevent conflicts with AO3 savior (which runs after a 15ms delay)
@@ -631,21 +585,21 @@ TO DO : UI                                                                      
         }, 300)
     }
 
-    function closeAo3Modal(e) {
+    function closeAo3Modal(e) { // and remove event listener if the modal is hidden. Bit of a // HACK.
         const modalIsOpen = (ao3Modal.bg.style.display != 'none')
-        if (!modalIsOpen || e.key === 'Escape') { window.removeEventListener('keydown', closeAo3Modal) } // Remove event listener if the modal is hidden. Bit of a // HACK
+        if (!modalIsOpen || e.key === 'Escape') { window.removeEventListener('keydown', closeAo3Modal) }
         if (modalIsOpen && e.key === 'Escape') { ao3Modal.closeBtn.click() }
     }
 
     // BUTTON: Apply filters. If filters are off, turn them on.
-    $('.tpf__apply').addEventListener('click', () => { // MAYBE adapt to multiple buttons
+    $('.tpf__apply').addEventListener('click', () => {
         if (!filterIsOn) { toggleFilterStatus() }
         applyFilters()
         saveFilterFields()
     })
 
     // BUTTON: Clear filters
-    $('.tpf__menu .footnote a').addEventListener('click', () => { // MAYBE also the format selectors?
+    $('.tpf__menu .footnote a').addEventListener('click', () => {
         for (const field of textFields) { field.value = field.defaultValue }
         for (const field of checkboxFields) {
             field.checked = false
@@ -688,14 +642,10 @@ TO DO : UI                                                                      
 
     function saveFilterFields() {
         [
-            [characters, 'characters'], [relationships, 'relationships'],
-            [excludedCharacters, 'excludedCharacters'], [excludedRelationships, 'excludedRelationships'],
-        ].forEach(([tagSet, storeTo]) => {
-            GM_setValue(storeTo, {
-                check: tagSet.check,
-                pattern: tagSet.pattern,
-                tagLim: tagSet.tagLim,
-            })
+            ['characters', characters], ['relationships', relationships],
+            ['excludedCharacters', excludedCharacters], ['excludedRelationships', excludedRelationships],
+        ].forEach(([settingName, tagSet]) => {
+            GM_setValue(settingName, { check: tagSet.check, pattern: tagSet.pattern, tagLim: tagSet.tagLim, })
         })
         GM_setValue('format', $('input[name="format"]:checked').value)
     }
