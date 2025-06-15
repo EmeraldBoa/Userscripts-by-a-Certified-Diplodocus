@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AO3: Priority tag filter
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.4.3
+// @version      1.5.0
 // @description  Hide work if chosen tags are late in sequence, or if blacklisted tags are early
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/works*
@@ -12,13 +12,12 @@
 // @license      GPL-3.0-or-later
 // @grant        GM_addStyle
 // @grant        GM_setValue
-// @grant        GM_setValues
 // @grant        GM_getValue
 // @grant        GM_getValues
 // @grant        GM_deleteValues
 // ==/UserScript==
 
-/* global GM_addStyle, GM_setValue, GM_setValues, GM_getValues, GM_deleteValues */
+/* global GM_addStyle, GM_setValue, GM_getValues, GM_deleteValues */
 
 /* AO3 logo designed by bingeling. Licensed under GNU 2+ https://commons.wikimedia.org/wiki/File:Archive_of_Our_Own_logo.png
 
@@ -27,17 +26,20 @@ Currently active on works/* and tags/* pages. To also enable on user pages, add 
 
 TO-DOs
     [x] clean code
-    [ ] modify to use AO3's fold/message. IF Ao3 class appears, add message to the fold. IF not, proceed as normal.
-    [ ] redo "hider" CSS/html (maybe to match AO3sav folding - hide/unhide)
-    [ ] remove unused GM_ functions. Test GM_getValues and GM_setValues in ViolentMonkey.
+    [x] use AO3's fold/message. IF Ao3 class appears, add message to the fold. IF not, proceed as normal.
+            Initial:   "This work is hidden! (Reason: tags include SQUICK.)"                                    (AO3 savior)
+            Output:    "This work is hidden! (Reason: tags include SQUICK; does not prioritise your tags.)"     (AO3 savior + tag priority)
+    [x] redo "hider" CSS/html (maybe to match AO3sav folding - hide/unhide)
+    [x] remove unused GM_ functions. Test GM_getValues and GM_setValues in ViolentMonkey.
 
-TO DO : Requires beta testing   
+TO DO : Requires beta testing
 
     [ ] Filter fields default to locked. Is this intuitive? (ALT: select (check) if you click on the textbox. Could be annoying, esp. when it comes to deselects.)
     [ ] Do I need another "apply" button at the top?
     [ ] Add error messages for incorrect inputs (popup? in menu?)
+    [ ] ...do I even need the AO3 setting? Checking if it hid a work is straightforward and costs little.
 
-// MAYBE / to do later 
+// MAYBE / to do later
 
     [ ] info popup redesign MAYBE: v2: own dialog, or v3: add text & hide AO3's (maybe with a style - invisible until replaced!)
     [ ] CONFIG: option to save settings to .txt file? IF I make it an extension (which I'd have to, to save the files, I think), then
@@ -46,6 +48,7 @@ TO DO : Requires beta testing
     [ ] split menu to its own form (MAYBE - needs to work with AO3)
             Reason: solve issue where "return" submits AO3's filters and reloads the page!
             Looks like it won't work (absolute positioning - don't think I can put a form element above it)
+    [ ] optional setting: highlight tags found (should be easy - look at tag highlighter fic)
 
 '------------------------------------------------------------------------------------------------------------------ */
 (function () {
@@ -67,7 +70,7 @@ TO DO : Requires beta testing
     })
 
     const works = $$('.work.blurb')
-    const workslistContainer = $('ol.work.index.group')
+    const workslistContainer = $('ol.work')
     let noFilterYet = true
 
     const sidebarHTML = `<h3 class="landmark heading">Tag priority</h3>
@@ -512,13 +515,13 @@ TO DO : Requires beta testing
     }
 
     // SET INITIAL VALUES ------------------------------------------------------------
-    // menu
+    // Menu
     settingsMenu.AO3sav.checked = stored.ao3SaviorIsInstalled
     toggleExpand(filterMenu, stored.menuIsExpanded)
     let filterIsOn = stored.filterIsOn
     setFilterStatus()
 
-    // define & populate filter fields
+    // Define & populate filter fields
     const characters = new tagBlock('include', 'characters', stored.characters),
         relationships = new tagBlock('include', 'relationships', stored.relationships),
         excludedCharacters = new tagBlock('exclude', 'characters', stored.excludedCharacters),
@@ -542,53 +545,9 @@ TO DO : Requires beta testing
     filterMenu.toggle.addEventListener('click', toggleFilterStatus)
     settingsMenu.AO3sav.addEventListener('change', function () { GM_setValue('ao3SaviorIsInstalled', this.checked) })
 
-    // BUTTON: info popup (with AO3's own modal: manually replicate the open, allow AO3 to handle close)
+    // BUTTON: info/help popup
     for (const infoButton of $$('.tpf__menu .question')) {
         infoButton.addEventListener('click', openAo3Modal)
-    }
-
-    const ao3Modal = {
-        bg: $('#modal-bg'),
-        loading: $('#modal-bg .loading'),
-        wrapper: $('#modal-wrap'),
-        window: $('#modal'),
-        content: $('#modal .userstuff'),
-        closeBtn: $('#modal .action.modal-closer'),
-    }
-
-    function openAo3Modal() {
-        debugLog('attempting to open modal...')
-        ao3Modal.content.insertAdjacentHTML('afterbegin', infoModalHTML) // add content
-        ao3Modal.window.querySelector('.title').textContent = 'Tag priority filters' // select each time: I think AO3 rebuilds this element on close
-        window.addEventListener('keydown', closeAo3Modal)
-
-        // CSS: replicate AO3's inline styles. The default close event clears them.
-        const scrollbarWidth = `${window.innerWidth - document.body.clientWidth}px`
-        for (const [el, ruleset] of [ // eslint-disable-next-line @stylistic/quote-props
-            [document.body, { 'margin-right': scrollbarWidth, overflow: 'hidden', height: '100vh' }], // prevent scrolling!
-            [ao3Modal.bg, { display: 'block', opacity: 0, transition: 'opacity 150ms ease-in' }],
-            [ao3Modal.wrapper, { display: 'block', opacity: 0, transition: 'opacity 150ms ease-in', top: `${window.scrollY}px` }], // position on page
-        ]) {
-            Object.assign(el.style, ruleset)
-        }
-        ao3Modal.loading.style.display = 'none'
-
-        setTimeout(() => {
-            for (const el of [ao3Modal.bg, ao3Modal.wrapper, ao3Modal.window]) { el.style.opacity = 1 }
-            ao3Modal.window.classList.add('tall')
-        }, 0)
-        setTimeout(() => {
-            for (const el of [ao3Modal.bg, ao3Modal.wrapper]) {
-                el.style.removeProperty('transition')
-                el.style.removeProperty('opacity')
-            }
-        }, 300)
-    }
-
-    function closeAo3Modal(e) { // and remove event listener if the modal is hidden. Bit of a // HACK.
-        const modalIsOpen = (ao3Modal.bg.style.display != 'none')
-        if (!modalIsOpen || e.key === 'Escape') { window.removeEventListener('keydown', closeAo3Modal) }
-        if (modalIsOpen && e.key === 'Escape') { ao3Modal.closeBtn.click() }
     }
 
     // BUTTON: Apply filters. If filters are off, turn them on.
@@ -636,7 +595,7 @@ TO DO : Requires beta testing
 
     function showAllWorks() {
         for (let i = 0; i < works.length; i++) {
-            works[i].classList.toggle('hidden-work', false)
+            works[i].classList.toggle('tpf-work', false)
         }
     }
 
@@ -645,7 +604,7 @@ TO DO : Requires beta testing
             ['characters', characters], ['relationships', relationships],
             ['excludedCharacters', excludedCharacters], ['excludedRelationships', excludedRelationships],
         ].forEach(([settingName, tagSet]) => {
-            GM_setValue(settingName, { check: tagSet.check, pattern: tagSet.pattern, tagLim: tagSet.tagLim, })
+            GM_setValue(settingName, { check: tagSet.check, pattern: tagSet.pattern, tagLim: tagSet.tagLim })
         })
         GM_setValue('format', $('input[name="format"]:checked').value)
     }
@@ -666,9 +625,6 @@ TO DO : Requires beta testing
         // iterate through works
         for (let i = 0; i < works.length; i++) {
 
-            // If AO3 saviour hid the work, add no further warnings
-            if (works[i].classList.contains('ao3-savior-work')) { continue } // go to next work
-
             // Get first n relationships/characters and check if any are in the user settings
             const firstNchars = getFirstNTags(works[i], '.characters', characters, excludedCharacters),
                 firstNrels = getFirstNTags(works[i], '.relationships', relationships, excludedRelationships),
@@ -678,24 +634,27 @@ TO DO : Requires beta testing
                 xRelMatch = matchTags(excludedRelationships, firstNrels, format)
 
             // Show work if it prioritises your tags and none of the blacklisted tags. Otherwise, hide it.
-            const foundMatch = relMatch && charMatch && !xRelMatch && !xCharMatch
-            debugLog(`foundMatch = ${foundMatch}:
+            const workIsValid = relMatch && charMatch && !xRelMatch && !xCharMatch
+            debugLog(`workIsValid = ${workIsValid}:
                 relMatch = ${relMatch}, charMatch = ${charMatch}
                 xRelMatch = ${xRelMatch}, xCharMatch = ${xCharMatch}`)
-            works[i].classList.toggle('hidden-work', !foundMatch)
-            if (foundMatch) { continue }
+            works[i].classList.toggle('tpf-work', !workIsValid)
+            if (workIsValid) { continue }
 
-            // Add explanation and "show work" button, if it does not already exist
-            if (works[i].nextElementSibling?.classList.contains('hide-reasons')) { continue }
-            const note = createNewElement('div', 'hide-reasons'),
-                div1 = createNewElement('div', 'left', 'This work does not prioritise your preferred tags.'),
-                div2 = createNewElement('div', 'right'),
-                button = createNewElement('button', 'showwork', 'Show Work')
+            // If AO3 savior hid the work, add warning <span> to its fold element, then continue to the next work.
+            if (works[i].classList.contains('ao3-savior-work')) {
+                if (works[i].querySelector('.tpf-reason-for-ao3-sav')) {
+                    const tpfReason = '<span class = "tpf-reason-for-ao3-sav">; does not prioritise your tags</span>'
+                    const reasonSpan = works[i].querySelector('.ao3-savior-reason')
+                    reasonSpan.innerHTML = reasonSpan.innerHTML.replace('.)</span>', tpfReason + '.)</span>')
+                }
+                continue
+            }
 
-            button.addEventListener('click', () => { works[i].classList.remove('hidden-work') })
-            note.append(div1, div2)
-            div2.append(button)
-            works[i].after(note)
+            // Add explanation and "show work" button, if it does not already exist. If it does, hide by default.
+            let fold = { container: works[i].querySelector('.tpf-fold'), get btn() { return fold.container?.querySelector('.tpf-fold-btn') } }
+            if (!fold.container) { fold = createFold(works[i]) }
+            toggleHideWork(fold, true)
         }
     }
 
@@ -739,6 +698,71 @@ TO DO : Requires beta testing
             .replace(/[\s\n]{2,}/g, ' ')
     }
 
+    // Mimic AO3 savior fold (not an exact copy: AO3 savior wraps the work blurb in a div)
+    function createFold(thisWork) {
+        const fold = {
+            container: createNewElement('div', 'tpf-fold'),
+            note: createNewElement('span', 'tpf-fold-note', 'This work does not prioritise your preferred tags.'),
+            reason: createNewElement('span', 'tpf-hide-reason'),
+            btn: createNewElement('button', 'tpf-fold-btn', 'Show Work'),
+        }
+
+        fold.container.append(fold.note, fold.reason, fold.btn)
+        thisWork.prepend(fold.container)
+        fold.btn.addEventListener('click', () => { toggleHideWork(fold) })
+        return fold
+    }
+
+    function toggleHideWork(fold, forceToggle) {
+        const isHidden = fold.container.classList.toggle('tpf-hidden', forceToggle)
+        fold.btn.textContent = (isHidden ? 'Show' : 'Hide') + ' Work'
+    }
+
+    // AO3 help/info modal: manually replicate the open event, allow AO3 to handle closing
+    const ao3Modal = {
+        bg: $('#modal-bg'),
+        loading: $('#modal-bg .loading'),
+        wrapper: $('#modal-wrap'),
+        window: $('#modal'),
+        content: $('#modal .userstuff'),
+        closeBtn: $('#modal .action.modal-closer'),
+    }
+
+    function openAo3Modal() {
+        debugLog('attempting to open modal...')
+        ao3Modal.content.insertAdjacentHTML('afterbegin', infoModalHTML) // add content
+        ao3Modal.window.querySelector('.title').textContent = 'Tag priority filters' // select each time: I think AO3 rebuilds this element on close
+        window.addEventListener('keydown', closeAo3Modal)
+
+        // CSS: replicate AO3's inline styles. The default close event clears them.
+        const scrollbarWidth = `${window.innerWidth - document.body.clientWidth}px`
+        for (const [el, ruleset] of [ // eslint-disable-next-line @stylistic/quote-props
+            [document.body, { 'margin-right': scrollbarWidth, overflow: 'hidden', height: '100vh' }], // prevent scrolling!
+            [ao3Modal.bg, { display: 'block', opacity: 0, transition: 'opacity 150ms ease-in' }],
+            [ao3Modal.wrapper, { display: 'block', opacity: 0, transition: 'opacity 150ms ease-in', top: `${window.scrollY}px` }], // position on page
+        ]) {
+            Object.assign(el.style, ruleset)
+        }
+        ao3Modal.loading.style.display = 'none'
+
+        setTimeout(() => {
+            for (const el of [ao3Modal.bg, ao3Modal.wrapper, ao3Modal.window]) { el.style.opacity = 1 }
+            ao3Modal.window.classList.add('tall')
+        }, 0)
+        setTimeout(() => {
+            for (const el of [ao3Modal.bg, ao3Modal.wrapper]) {
+                el.style.removeProperty('transition')
+                el.style.removeProperty('opacity')
+            }
+        }, 300)
+    }
+
+    function closeAo3Modal(e) { // and remove event listener if the modal is hidden. Bit of a // HACK.
+        const modalIsOpen = (ao3Modal.bg.style.display != 'none')
+        if (!modalIsOpen || e.key === 'Escape') { window.removeEventListener('keydown', closeAo3Modal) }
+        if (modalIsOpen && e.key === 'Escape') { ao3Modal.closeBtn.click() }
+    }
+
     function createNewElement(elementType, className, textContent) {
         const el = document.createElement(elementType)
         el.className = className
@@ -747,37 +771,32 @@ TO DO : Requires beta testing
     }
 
     const hiderCss = `
-        .hide-reasons {
+    .tpf-fold, .ao3-sav-tpf-reason {
+        display: none
+    }
+    .tpf-work {
+        & > .tpf-fold {
+            align-items: center;
+            display: flex;
+            justify-content: flex-start;
+            & .tpf-fold-btn { margin-left: auto; }
+        }
+        & > .ao3-sav-tpf-reason { /* span inserted in AO3 savior text */
+            display: inherit
+        }
+        & > .tpf-hidden ~ * { 
             display: none;
-            background-color: red;
         }
-        li.hidden-work {
-            display: none;
-            background-color: orange; /* DEV: works that were previously hidden, but are shown when the filter is off. Will be hidden again when toggle is clicked. */
+        & > .tpf-fold:not(.tpf-hidden) {
+            border-bottom: 1px dashed;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
         }
-        li.hidden-work + .hide-reasons {
-            border: 1px solid rgb(221,221,221);
-            margin: 0.643em 0em;
-            padding: 0.429em 0.75em;
-            height: 29px;
-            background-color: aqua;
-            display: block;
-        }
-        .hide-reasons .left {
-            float: left;
-            padding-top: 5px;
-        }
-        .hide-reasons .right {
-            float: right;
-        }
-        
-        /*--------------------- TOGGLE FILTER OFF: ---------------------*/
-        ol.work.index.group:not(.show-priority-filters) > .hidden-work {
-            display: inherit;
-        }
-        ol.work.index.group:not(.show-priority-filters) > .hide-reasons {
-            display: none;
-        }`
+    }
+    ol.work:not(.show-priority-filters) > .tpf-work > * {
+        display: inherit;
+        &.tpf-fold { display: none }
+    }`
 
     const infoPopupCss = `.tpf__menu.popup {
         font-size: 1em;
