@@ -55,3 +55,11 @@
   - avoid on `<footer>`, `<section>`, `<article>`, `<header>`, or any `<h_>` elements. [[w3]](https://www.w3.org/TR/using-aria/#label-support)
 
 * `aria-labelledby`
+
+
+# CSS
+
+### Specificity hierarchy (left to right)
+
+- inline > #id > .class > attribute (e.g `[type="text"]`) > element (e.g `p`).
+- `p.class` > `.class`
