@@ -33,7 +33,8 @@ Known problems:
 
 Planned features
     - highlight matches (optional setting)
-    - 
+    - save settings, choose from dropdown (edit and delete from within settings)
+    - back up / restore from file (may require an extension)
     - extension
 
 TO DO : Before publishing
@@ -46,14 +47,9 @@ TO DO : Before publishing
 
     BUG: regex not fully tested?
 
-    [ ] Add currentFilter object in applyFilters() to avoid checking the getters every time
+    [x] applyFilters(): retrieve filter values once
     [ ] add note: wildcard matches whole words, regex matches parts of words unless explicitly told otherwise
     [ ] debug mode as a UI setting
-
-    FIXED
-    [x] BUG: clear filters also resets the settings
-    [x] BUG: wildcard search no longer broken
-    [x] BUG: search would fail if it included diacritics (e.g. "include characters: félix")
 
 TO DO : Requires beta testing
 
@@ -534,21 +530,16 @@ TO DO : Requires beta testing
             this.tagLimitField.value = storedVals.tagLim
             this.checkboxField.dispatchEvent(new Event('change')) // apply formatting
         }
-
-        get check() { return this.checkboxField.checked }
-        get pattern() { return this.textareaField.value.split(',').map(s => removeDiacriticsAndExtraSpaces(s)) }
-        get tagLim() { return this.tagLimitField.value.trim() }
-
-        get isValid() { return this.pattern.length > 0 && this.tagLim.length } // ok to save
-        get checkTags() { return this.check && this.isValid } // ok to commit
     }
-    class currentFilter { // returns the filter values at the time the object is created
+
+    class currentFilter { // store the filter values at the time the object is created
         constructor(tagBlock) {
-            this.check = tagBlock.check
-            this.pattern = tagBlock.pattern
-            this.tagLim = tagBlock.tagLim
-            this.isValid = (this.pattern.length > 0 && this.tagLim > 0)
-            this.checkTags = (this.check && this.isValid)
+            this.check = tagBlock.checkboxField.checked
+            this.pattern = tagBlock.textareaField.value.split(',').map(s => removeDiacriticsAndExtraSpaces(s))
+            this.tagLim = tagBlock.tagLimitField.value.trim()
+            this.isValid = (this.pattern.length > 0 && this.tagLim.length > 0) // ok to save
+            this.checkTags = (this.check && this.isValid) // ok to commit
+            this.defaultMatchResult = tagBlock.defaultMatchResult
         }
     }
 
@@ -560,10 +551,10 @@ TO DO : Requires beta testing
     setFilterStatus()
 
     // Define & populate filter fields
-    const characters = new tagBlock('include', 'characters', stored.characters),
-        relationships = new tagBlock('include', 'relationships', stored.relationships),
-        excludedCharacters = new tagBlock('exclude', 'characters', stored.excludedCharacters),
-        excludedRelationships = new tagBlock('exclude', 'relationships', stored.excludedRelationships)
+    const characterBlock = new tagBlock('include', 'characters', stored.characters),
+        relationshipBlock = new tagBlock('include', 'relationships', stored.relationships),
+        excludedCharacterBlock = new tagBlock('exclude', 'characters', stored.excludedCharacters),
+        excludedRelationshipBlock = new tagBlock('exclude', 'relationships', stored.excludedRelationships)
     $(`.tpf__syntax input[value=${stored.format}]`).checked = true
 
     // Filter on load: add 20ms delay to prevent conflicts with AO3 savior (which runs after a 15ms delay)
@@ -591,8 +582,8 @@ TO DO : Requires beta testing
     // BUTTON: Apply filters. If filters are off, turn them on.
     $('.tpf__apply').addEventListener('click', () => {
         if (!filterIsOn) { toggleFilterStatus() }
-        applyFilters()
-        saveFilterFields()
+        const thisFilter = applyFilters()
+        saveFilterFields(...thisFilter)
     })
 
     // BUTTON: Clear filters
@@ -637,29 +628,33 @@ TO DO : Requires beta testing
         }
     }
 
-    function saveFilterFields() {
+    function saveFilterFields(chars, rels, xChars, xRels) {
         [
-            ['characters', characters], ['relationships', relationships],
-            ['excludedCharacters', excludedCharacters], ['excludedRelationships', excludedRelationships],
+            ['characters', chars], ['relationships', rels], ['excludedCharacters', xChars], ['excludedRelationships', xRels],
         ].forEach(([settingName, tagSet]) => {
             GM_setValue(settingName, { check: tagSet.check, pattern: tagSet.pattern, tagLim: tagSet.tagLim })
         })
         GM_setValue('format', $('.tpf__syntax input[name="format"]:checked').value)
     }
 
-    // Hide works which don't prioritise your characters/relationships.
+    // Hide works which don't prioritise your characters/relationships. Return the values of the current filter for saving.
     function applyFilters() {
 
         noFilterYet = false
-        const format = $('.tpf__syntax input[name="format"]:checked').value
 
-        // TODO: create obj to retrieve filter values ONCE (currently happening once per loop!)
+        // Retrieve filter values
+        const format = $('.tpf__syntax input[name="format"]:checked').value,
+            characters = new currentFilter(characterBlock),
+            relationships = new currentFilter(relationshipBlock),
+            excludedCharacters = new currentFilter(excludedCharacterBlock),
+            excludedRelationships = new currentFilter(excludedRelationshipBlock)
+        const thisFilter = [characters, relationships, excludedCharacters, excludedRelationships]
 
         // If no valid characters/relationships are found, exit early (and reveal all)
         if (!characters.checkTags && !relationships.checkTags && !excludedCharacters.checkTags && !excludedRelationships.checkTags) {
             showAllWorks()
-            debugLog('No valid filters found!')
-            return
+            debugLog('No valid filters found!') 
+            return thisFilter
         }
 
         // iterate through works
@@ -697,6 +692,7 @@ TO DO : Requires beta testing
             if (!fold.container) { fold = createFold(works[i]) }
             toggleHideWork(fold, true)
         }
+        return thisFilter
     }
 
     // Get the first N tags (where N = largest of the two tag limits). Remove diacritics.
