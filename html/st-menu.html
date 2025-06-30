@@ -11,7 +11,7 @@
     <fieldset class="tpf__ui tpf__sidebar">
         <legend>Tag priority:</legend> <!--is this redundant?-->
         <dl>
-            <dt class="tpf__sidebar-head collapsed">
+            <dt class="tpf__sidebar-head expanded">
                 <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__sidebar-content">
                     Tag priority
                 </button>
@@ -69,7 +69,7 @@
                             <span><span class="landmark">Exclude </span>Relationships</span>
                         </label>
                         <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
-                            spellcheck="false" placeholder="*Ishtar*" readonly></textarea>
+                            spellcheck="false" readonly></textarea>
                         <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim" readonly>
                             tags</label>
                     </section>
@@ -107,11 +107,18 @@
                         </p>
                     </dt>
                     <dd id="tpf__config" class="expandable">
+                        <div></div>
                         <label>
                             <input id="tpf__setting-AO3-sav" type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
                             <span>AO3 Savior is installed</span>
-                            <span class="tpf__explanatory-text">(prevent conflict)</span>
+                            <span class="tpf__explanatory-text">(prevent conflict; may require a reload)</span>
+                        </label>
+                        <label>
+                            <input id="tpf__setting-debug" type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span>Debug mode</span>
+                            <span class="tpf__explanatory-text">(may require a reload)</span>
                         </label>
                         <div class="actions">
                             <button class="save" type="button">Export tag filters to file</button>

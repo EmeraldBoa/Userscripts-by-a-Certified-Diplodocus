@@ -117,8 +117,10 @@
             box-sizing: border-box;
             display: grid;
             row-gap: 0.5em;
+            & #tpf__setting-debug + span + span::before { content: "🐞"; margin-right: 0.3em; }
             & .save::before { content: "💾" ; float:left }
             & .load::before { content: "🠋" ; text-decoration: underline; float:left}
+            & .actions { margin-top: 0.5em;}
         }
     }
 

@@ -38,6 +38,7 @@ Planned features
     - extension
 
 TO DO : Before publishing
+
     [ ] test on violentmonkey, chrome, mobile
     [ ] remove "save/load" buttons
     [ ] remove notes to self
@@ -48,8 +49,9 @@ TO DO : Before publishing
     BUG: regex not fully tested?
 
     [x] applyFilters(): retrieve filter values once
-    [ ] add note: wildcard matches whole words, regex matches parts of words unless explicitly told otherwise
-    [ ] debug mode as a UI setting
+    [x] debug mode as a UI setting
+
+    [ ] CTRL+H: expanded" > collapsed" (HTML fix)
 
 TO DO : Requires beta testing
 
@@ -58,7 +60,7 @@ TO DO : Requires beta testing
     [ ] Do I need another "apply" button at the top?
     [ ] Add error messages for incorrect inputs (popup? in menu? highlight field causing error? <= probably the best, but not accessible)
 
-// MAYBE / to do later
+ MAYBE / to do later
 
     [ ] info popup behind-the-scenes redesign MAYBE: v2: own dialog, or v3: add text & hide AO3's (maybe with a style - invisible until replaced!)
     [ ] CONFIG: option to save settings to .txt file? IF I make it an extension (which I'd have to, to save the files, I think), then
@@ -80,7 +82,6 @@ TO DO : Requires beta testing
 '------------------------------------------------------------------------------------------------------------------ */
 (function () {
     'use strict'
-    const enableVerboseLogging = true // set to 'true' for debugging purposes
     const $ = document.querySelector.bind(document) // shorthand for readability
     const $$ = document.querySelectorAll.bind(document)
 
@@ -94,8 +95,10 @@ TO DO : Requires beta testing
         excludedRelationships: null,
         format: 'wildcard',
         ao3SaviorIsInstalled: true,
+        debugMode: false,
     })
     let noFilterYet = true
+    let debugModeOn = stored.debugMode
 
     // get AO3 elements; validate
     const works = $$('.work.blurb')
@@ -194,7 +197,7 @@ TO DO : Requires beta testing
                     </h3><button class="tpf__apply" type="button">Apply filters</button>
                 </section>
                 <dl>
-                    <dt class="tpf__config-head expanded">
+                    <dt class="tpf__config-head collapsed">
                         <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__config"
                             aria-label="Settings">⚙️ Settings</button>
                         <p class="footnote">
@@ -202,11 +205,18 @@ TO DO : Requires beta testing
                         </p>
                     </dt>
                     <dd id="tpf__config" class="expandable">
+                        <div></div>
                         <label>
                             <input id="tpf__setting-AO3-sav" type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
                             <span>AO3 Savior is installed</span>
-                            <span class="tpf__explanatory-text">(prevent conflict)</span>
+                            <span class="tpf__explanatory-text">(prevent conflict; may require a reload)</span>
+                        </label>
+                        <label>
+                            <input id="tpf__setting-debug" type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span>Debug mode</span>
+                            <span class="tpf__explanatory-text">(may require a reload)</span>
                         </label>
                         <div class="actions">
                             <button class="save" type="button">Export tag filters to file</button>
@@ -334,7 +344,7 @@ TO DO : Requires beta testing
         </details>
         <details class="tpf__info-section">
             <summary>Examples</summary>
-            <h5>Example 1 (with *wildcards)</h5>
+            <h5>Example 1</h5>
             <table class="tpf__matching-examples">
                 <thead>
                     <tr>
@@ -364,7 +374,7 @@ TO DO : Requires beta testing
                     </tr>
                 </tbody>
             </table>
-            <h5>Example 2 (with *wildcards): <br></h5>
+            <h5>Example 2:<br></h5>
             <table class="tpf__matching-examples">
                 <thead>
                     <tr>
@@ -385,7 +395,7 @@ TO DO : Requires beta testing
                     </tr>
                 </tbody>
             </table>
-            <h5>Example 3 (with regex): <br></h5>
+            <h5>Example 3 (with regex): THIS WILL NOT WORK<br></h5>
             <table class="tpf__matching-examples">
                 <thead>
                     <tr>
@@ -400,7 +410,7 @@ TO DO : Requires beta testing
                     <tr>
                         <td><em>platonic</em> relationships with Servalan</td>
                         <td>Include Rels.</td>
-                        <td>[^/]?servalan[^/]?</td>
+                        <td>^[^\\/]*servalan[^\\/]*$</td>
                         <td>1</td>
                         <td>relationships containing "Servalan" but not "/"</td>
                     </tr>
@@ -506,6 +516,7 @@ TO DO : Requires beta testing
         container: $('.tpf__config-head'),
         expander: $('.tpf__config-head .expander'),
         AO3sav: $('#tpf__setting-AO3-sav'),
+        debugMode: $('#tpf__setting-debug'),
     }
     const textFields = $$('.tpf__tag-block :is(input[type="text"], textarea)'),
         checkboxFields = $$('.tpf__tag-block input[type="checkbox"]')
@@ -546,6 +557,7 @@ TO DO : Requires beta testing
     // SET INITIAL VALUES ------------------------------------------------------------
     // Menu
     settingsMenu.AO3sav.checked = stored.ao3SaviorIsInstalled
+    settingsMenu.debugMode.checked = stored.debugMode
     toggleExpand(filterMenu, stored.menuIsExpanded)
     let filterIsOn = stored.filterIsOn
     setFilterStatus()
@@ -573,6 +585,10 @@ TO DO : Requires beta testing
     settingsMenu.expander.addEventListener('click', () => { toggleExpand(settingsMenu) }) // collapsed by deafult
     filterMenu.toggle.addEventListener('click', toggleFilterStatus)
     settingsMenu.AO3sav.addEventListener('change', function () { GM_setValue('ao3SaviorIsInstalled', this.checked) })
+    settingsMenu.debugMode.addEventListener('change', function () {
+        debugModeOn = this.checked
+        GM_setValue('debugMode', debugModeOn)
+    })
 
     // BUTTON: info/help popup
     for (const infoButton of $$('.tpf__ui .question')) {
@@ -653,7 +669,7 @@ TO DO : Requires beta testing
         // If no valid characters/relationships are found, exit early (and reveal all)
         if (!characters.checkTags && !relationships.checkTags && !excludedCharacters.checkTags && !excludedRelationships.checkTags) {
             showAllWorks()
-            debugLog('No valid filters found!') 
+            debugLog('No valid filters found!')
             return thisFilter
         }
 
@@ -835,8 +851,7 @@ TO DO : Requires beta testing
         &.tpf-fold { display: none }
     }`
 
-    GM_addStyle(hiderCss + `
-.tpf__ui {
+    GM_addStyle(hiderCss + `.tpf__ui {
     font-size: 0.9em;
 
     & h3, h4, dt, dd {
@@ -905,8 +920,10 @@ TO DO : Requires beta testing
             box-sizing: border-box;
             display: grid;
             row-gap: 0.5em;
+            & #tpf__setting-debug + span + span::before { content: "🐞"; margin-right: 0.3em; }
             & .save::before { content: "💾" ; float:left }
             & .load::before { content: "🠋" ; text-decoration: underline; float:left}
+            & .actions { margin-top: 0.5em;}
         }
     }
 
@@ -1078,7 +1095,7 @@ TO DO : Requires beta testing
 }`)
 
     function debugLog(input) {
-        if (enableVerboseLogging) { console.log(input) }
+        if (settingsMenu.debugMode.checked) { console.log(input) }
     }
 
 })()
