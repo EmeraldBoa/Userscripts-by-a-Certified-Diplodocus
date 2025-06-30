@@ -8,16 +8,16 @@
 
 <body>
     <h3 class="landmark heading">Tag priority</h3>
-    <fieldset class="tpf__menu tpf__filters">
+    <fieldset class="tpf__ui tpf__sidebar">
         <legend>Tag priority:</legend> <!--is this redundant?-->
         <dl>
-            <dt class="tpf__filter-head collapsed">
-                <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__menu-content">
+            <dt class="tpf__sidebar-head collapsed">
+                <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__sidebar-content">
                     Tag priority
                 </button>
                 <button type="button" id="tpf__filter-toggle" class="current" aria-pressed="true">On</button>
             </dt>
-            <dd id="tpf__menu-content" class="expandable">
+            <dd id="tpf__sidebar-content" class="expandable">
                 <section class="tpf__wrap" aria-describedby="tpf__header-include">
                     <div class="tpf__head">
                         <h4 id="tpf__header-include">Include</h4> (at least one)
@@ -30,8 +30,8 @@
                             <span id="block-include-chars"><span class="landmark">Include </span>Characters</span>
                         </label>
                         <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
-                            spellcheck="false" placeholder="Gilgamesh, Enkidu"></textarea>
-                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
+                            spellcheck="false" placeholder="Gilgamesh, Enkidu" readonly></textarea>
+                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim" readonly>
                             tags</label>
                     </section>
                     <section class="tpf__tag-block include relationships">
@@ -41,8 +41,8 @@
                             <span><span class="landmark">Include </span>Relationships</span>
                         </label>
                         <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
-                            spellcheck="false" placeholder="Gilgamesh*Enkidu, Enkidu*Gilgamesh"></textarea>
-                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
+                            spellcheck="false" placeholder="Gilgamesh*Enkidu, Enkidu*Gilgamesh" readonly></textarea>
+                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim" readonly>
                             tags</label>
                     </section>
                 </section>
@@ -58,9 +58,8 @@
                             <span><span class="landmark">Exclude </span>Characters</span>
                         </label>
                         <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
-                            spellcheck="false"></textarea>
-                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim"
-                                aria-label="N">
+                            spellcheck="false" readonly></textarea>
+                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim" readonly>
                             tags</label>
                     </section>
                     <section class="tpf__tag-block exclude relationships">
@@ -70,17 +69,15 @@
                             <span><span class="landmark">Exclude </span>Relationships</span>
                         </label>
                         <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
-                            spellcheck="false" placeholder="*Ishtar*"></textarea>
-                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
+                            spellcheck="false" placeholder="*Ishtar*" readonly></textarea>
+                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim" readonly>
                             tags</label>
                     </section>
                 </section>
-                <section class="tpf__settings" aria-describedby="tpf__header-settings">
-                    <h3 id="tpf__header-settings" class="landmark">Settings</h3>
+                <section class="tpf__syntax" aria-describedby="tpf__syntax-header">
+                    <h3 id="tpf__syntax-header" class="landmark">Format</h3>
                     <fieldset>
-                        <legend>
-                            Format
-                        </legend>
+                        <legend>Format</legend>
                         <label>
                             <input type="radio" name="format" id="tpf__opt-wildcard" value="wildcard" form=""
                                 checked><!--omit from parent form-->
@@ -102,19 +99,19 @@
                     </h3><button class="tpf__apply" type="button">Apply filters</button>
                 </section>
                 <dl>
-                    <dt id="tpf__config-head" class="filter-toggle expanded">
-                        <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__config-head"
+                    <dt class="tpf__config-head expanded">
+                        <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__config"
                             aria-label="Settings">⚙️ Settings</button>
                         <p class="footnote">
                             <a href="#work-filters">Clear Filters</a>
                         </p>
                     </dt>
-                    <dd class="tpf__config expandable">
+                    <dd id="tpf__config" class="expandable">
                         <label>
                             <input id="tpf__setting-AO3-sav" type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
                             <span>AO3 Savior is installed</span>
-                            <span class="explanatory-text">(prevent conflict)</span>
+                            <span class="tpf__explanatory-text">(prevent conflict)</span>
                         </label>
                         <div class="actions">
                             <button class="save" type="button">Export tag filters to file</button>
@@ -125,11 +122,12 @@
             </dd>
         </dl>
     </fieldset>
+
     <div>&nbsp;</div>
 
-    <div class="tpf__menu popup">
-        <details class="info-section">
-            <summary class="section-head">Basics</summary>
+    <div class="tpf__ui popup">
+        <details class="tpf__info-section">
+            <summary>Basics</summary>
             <p>The script cannot use AO3's tag system, but instead <strong>matches
                     the literal tag text</strong>. <br>
                 Add synonyms where necessary
@@ -140,12 +138,12 @@
             <ul>
                 <li>Only character and relationship tags are checked.</li>
                 <li>Comma = OR
-                    <table class="matching-basics">
+                    <table class="tpf__matching-basics">
                         <thead>
                             <tr>
                                 <th scope="col"></th>
                                 <th scope="col">search term(s)</th>
-                                <th scope="col" class="narrow">N</th>
+                                <th scope="col">N</th>
                                 <th scope="col">result</th>
                             </tr>
                         </thead>
@@ -175,8 +173,8 @@
             <p>⚠ If you need a blacklist, <a href="https://greasyfork.org/en/scripts/3579-ao3-savior">AO3 savior</a>
                 does it better.</p>
         </details>
-        <details class="info-section">
-            <summary class="section-head">How to filter</summary>
+        <details class="tpf__info-section">
+            <summary>How to filter</summary>
             <p>Choose between <strong>*wildcards</strong> (default) or <strong>regex</strong> (more flexible, for
                 advanced users). <br>
                 Wildcards are enough for most purposes:</p>
@@ -202,8 +200,8 @@
                     "The&nbsp;Master&nbsp;(Doctor&nbsp;Who)"
                 </li>
             </ul>
-            <details class="rx-cheatsheet">
-                <summary class="cheatsheet-head">Regex cheatsheet</summary>
+            <details class="tpf__rx-cheatsheet">
+                <summary>Regex cheatsheet</summary>
                 <h4>Characters</h4>
                 <dl>
                     <dt>.</dt>
@@ -242,10 +240,10 @@
                     javascript, which does not support all regex options.</p>
             </details>
         </details>
-        <details class="info-section">
-            <summary class="section-head">Examples</summary>
-            <h5>Example 1 (with *wildcards)</h5>
-            <table class="matching-examples">
+        <details class="tpf__info-section">
+            <summary>Examples</summary>
+            <h5>Example 1</h5>
+            <table class="tpf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -274,8 +272,8 @@
                     </tr>
                 </tbody>
             </table>
-            <h5>Example 2 (with *wildcards): <br></h5>
-            <table class="matching-examples">
+            <h5>Example 2:<br></h5>
+            <table class="tpf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -295,8 +293,8 @@
                     </tr>
                 </tbody>
             </table>
-            <h5>Example 3 (with regex): <br></h5>
-            <table class="matching-examples">
+            <h5>Example 3 (with regex): THIS WILL NOT WORK<br></h5>
+            <table class="tpf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -310,7 +308,7 @@
                     <tr>
                         <td><em>platonic</em> relationships with Servalan</td>
                         <td>Include Rels.</td>
-                        <td>[^/]?servalan[^/]?</td>
+                        <td>^[^\/]*servalan[^\/]*$</td>
                         <td>1</td>
                         <td>relationships containing "Servalan" but not "/"</td>
                     </tr>
@@ -319,7 +317,7 @@
             <h5>Example 4 (with regex): <br>
                 you don't want to read fics focusing on original
                 characters, but don't mind if they're part of the story.</h5>
-            <table class="matching-examples">
+            <table class="tpf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -340,7 +338,7 @@
                 </tbody>
             </table>
             <h5>Example 5a (with *wildcards)</h5>
-            <table class="matching-examples">
+            <table class="tpf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -374,7 +372,7 @@
                 We could list them all, or...
             </p>
             <h5>Example 5b (with regex)</h5>
-            <table class="matching-examples">
+            <table class="tpf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -415,50 +413,13 @@ TODO:
 [ ] apply button appearance - click animation is unintuitive
 [x] rewrite for new wildcards (no need to wrap *word* any more)
 [x] add notes: common regex operators, special characters
-    
-REMOVED:
-    <section class="head">
-        <h3>Tag priority filters</h3>
-        <button type="button" class="exit-btn">x</button>
-    </section>
-    & .head {
-        display: flex;
-        justify-content: space-between;
-        border-bottom: solid 2px firebrick;
-    }
-    & button {
-        &.exit-btn {
-            width: 1.5em;
-            vertical-align: top;
-            &:hover {
-                color: firebrick;
-            }
-        }
-    }
 
-    <table class="match-exclude">
-        <thead>
-            <tr>
-                <th scope="col">wildcard (*)</th>
-                <th scope="col">RegExp</th>
-                <th scope="col">matches</th>
-                <th scope="col">excludes</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>naruto</td>
-                <td>^naruto$</td>
-                <td>Naruto</td>
-                <td>Naruto Uzumaki, Uzumaki Naruto, Naruto's Evil Clone</td>
-            </tr>
-            <tr>
-                <td>*naruto*</td>
-                <td>naruto</td>
-                <td>Naruto Uzumaki, Uzumaki Naruto, Naruto, Naruto's Evil Clone</td>
-                <td></td>
-            </tr>
-        </tbody>
-    </table>
+[x] fewer lines in textareas (test)
+[x] add "settings" expandable + css from the other file
+    [x] make spacing match the rest
+    [x] class/id for checkbox. 
+        [x] Explanatory note/tooltip?
+    [ ] fix landmarks
+    [ ] little css rotation on emoji?
 
 -->

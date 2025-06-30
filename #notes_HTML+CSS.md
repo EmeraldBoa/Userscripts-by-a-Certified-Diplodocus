@@ -59,7 +59,7 @@
 
 # CSS
 
-### Specificity hierarchy (left to right)
+### Specificity hierarchy (most to least specific)
 
 - inline > #id > .class > attribute (e.g `[type="text"]`) > element (e.g `p`).
 - `p.class` > `.class`

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AO3: Priority tag filter
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.5.0
+// @version      1.5.1
 // @description  Hide work if chosen tags are late in sequence, or if blacklisted tags are early
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/works*
@@ -24,36 +24,67 @@
 Currently active on works/* and tags/* pages. To also enable on user pages, add the following line in the header:
     // @match        http*://archiveofourown.org/users/*
 
-TO-DOs
-    [x] clean code
-    [x] use AO3's fold/message. IF Ao3 class appears, add message to the fold. IF not, proceed as normal.
+    use AO3's fold/message. IF Ao3 class appears, add message to the fold. IF not, proceed as normal.
             Initial:   "This work is hidden! (Reason: tags include SQUICK.)"                                    (AO3 savior)
             Output:    "This work is hidden! (Reason: tags include SQUICK; does not prioritise your tags.)"     (AO3 savior + tag priority)
-    [x] redo "hider" CSS/html (maybe to match AO3sav folding - hide/unhide)
-    [x] remove unused GM_ functions. Test GM_getValues and GM_setValues in ViolentMonkey.
+
+Known problems:
+    - Cannot handle multiple searches at once (e.g. two tabs/windows open with a different filter combination on each)
+
+Planned features
+    - highlight matches (optional setting)
+    - 
+    - extension
+
+TO DO : Before publishing
+    [ ] test on violentmonkey, chrome, mobile
+    [ ] remove "save/load" buttons
+    [ ] remove notes to self
+    [ ] write intro
+    [ ] name??
+    [ ] publish as v2.0.0
+
+    BUG: regex not fully tested?
+
+    [ ] Add currentFilter object in applyFilters() to avoid checking the getters every time
+    [ ] add note: wildcard matches whole words, regex matches parts of words unless explicitly told otherwise
+    [ ] debug mode as a UI setting
+
+    FIXED
+    [x] BUG: clear filters also resets the settings
+    [x] BUG: wildcard search no longer broken
+    [x] BUG: search would fail if it included diacritics (e.g. "include characters: félix")
 
 TO DO : Requires beta testing
 
     [ ] Filter fields default to locked. Is this intuitive? (ALT: select (check) if you click on the textbox. Could be annoying, esp. when it comes to deselects.)
+        [ ] test on fresh install: does it actually?
     [ ] Do I need another "apply" button at the top?
-    [ ] Add error messages for incorrect inputs (popup? in menu?)
-    [ ] ...do I even need the AO3 setting? Checking if it hid a work is straightforward and costs little.
+    [ ] Add error messages for incorrect inputs (popup? in menu? highlight field causing error? <= probably the best, but not accessible)
 
 // MAYBE / to do later
 
-    [ ] info popup redesign MAYBE: v2: own dialog, or v3: add text & hide AO3's (maybe with a style - invisible until replaced!)
+    [ ] info popup behind-the-scenes redesign MAYBE: v2: own dialog, or v3: add text & hide AO3's (maybe with a style - invisible until replaced!)
     [ ] CONFIG: option to save settings to .txt file? IF I make it an extension (which I'd have to, to save the files, I think), then
         [ ] save current settings to extension
         [ ] dropdown to choose between saved settings
     [ ] split menu to its own form (MAYBE - needs to work with AO3)
             Reason: solve issue where "return" submits AO3's filters and reloads the page!
             Looks like it won't work (absolute positioning - don't think I can put a form element above it)
-    [ ] optional setting: highlight tags found (should be easy - look at tag highlighter fic)
+        [ ] create form with same classes, id="tpf-form"
+        [ ] create JS variable formHeight. On form expand, get new height.
+            (what happens if overflow, zoom etc affect height?)
+        [ ] CSS: read variable, #work-filters { top = --tpf__form-height }
+        [ ] HTML: <input type="number" min="1" max="20" class="tpf__tag-lim">
+        [ ] CSS: .tpf__tag-lim:invalid { border: solid red 1.5px; border-radius: 2px; }
+    [ ] optional setting: highlight tags found (should be easy - look at tag highlighter fic). Would have to loop through all search terms.
+    [ ] aria-expanded on the work folds
+    [ ] fix 'wildcard', 'regex' magic strings, replace with const format = { wildcard: 0, rx: 1 }. This would need to be added to the html!
 
 '------------------------------------------------------------------------------------------------------------------ */
 (function () {
     'use strict'
-    const enableVerboseLogging = false // set to 'true' for debugging purposes
+    const enableVerboseLogging = true // set to 'true' for debugging purposes
     const $ = document.querySelector.bind(document) // shorthand for readability
     const $$ = document.querySelectorAll.bind(document)
 
@@ -65,135 +96,134 @@ TO DO : Requires beta testing
         relationships: null,
         excludedCharacters: null,
         excludedRelationships: null,
-        format: 'regex',
+        format: 'wildcard',
         ao3SaviorIsInstalled: true,
     })
-
-    const works = $$('.work.blurb')
-    const workslistContainer = $('ol.work')
     let noFilterYet = true
 
+    // get AO3 elements; validate
+    const works = $$('.work.blurb')
+    const workslistContainer = $('ol.work')
+    const ao3FilterSidebar = $('#work-filters')
+
     const sidebarHTML = `<h3 class="landmark heading">Tag priority</h3>
-        <fieldset class="tpf__menu tpf__filters">
-            <legend>Tag priority:</legend> <!--is this redundant?-->
-            <dl>
-                <dt class="tpf__filter-head collapsed">
-                    <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__menu-content">
-                        Tag priority
-                    </button>
-                    <button type="button" id="tpf__filter-toggle" class="current" aria-pressed="true">On</button>
-                </dt>
-                <dd id="tpf__menu-content" class="expandable">
-                    <section class="tpf__wrap" aria-describedby="tpf__header-include">
-                        <div class="tpf__head">
-                            <h4 id="tpf__header-include">Include</h4> (at least one)
-                            <button type="button" class="question" aria-label="help">?</button>
+    <fieldset class="tpf__ui tpf__sidebar">
+        <legend>Tag priority:</legend> <!--is this redundant?-->
+        <dl>
+            <dt class="tpf__sidebar-head collapsed">
+                <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__sidebar-content">
+                    Tag priority
+                </button>
+                <button type="button" id="tpf__filter-toggle" class="current" aria-pressed="true">On</button>
+            </dt>
+            <dd id="tpf__sidebar-content" class="expandable">
+                <section class="tpf__wrap" aria-describedby="tpf__header-include">
+                    <div class="tpf__head">
+                        <h4 id="tpf__header-include">Include</h4> (at least one)
+                        <button type="button" class="question" aria-label="help">?</button>
+                    </div>
+                    <section class="tpf__tag-block include characters">
+                        <label id="tpf__include-chars">
+                            <input type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span id="block-include-chars"><span class="landmark">Include </span>Characters</span>
+                        </label>
+                        <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
+                            spellcheck="false" placeholder="Gilgamesh, Enkidu" readonly></textarea>
+                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim" readonly>
+                            tags</label>
+                    </section>
+                    <section class="tpf__tag-block include relationships">
+                        <label>
+                            <input type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span><span class="landmark">Include </span>Relationships</span>
+                        </label>
+                        <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
+                            spellcheck="false" placeholder="Gilgamesh*Enkidu, Enkidu*Gilgamesh" readonly></textarea>
+                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim" readonly>
+                            tags</label>
+                    </section>
+                </section>
+                <section class="tpf__wrap" aria-describedby="tpf__header-exclude">
+                    <div class="tpf__head">
+                        <h4 id="tpf__header-exclude">Exclude</h4>
+                        <button type="button" class="question" aria-label="help">?</button>
+                    </div>
+                    <section class="tpf__tag-block exclude characters">
+                        <label>
+                            <input type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span><span class="landmark">Exclude </span>Characters</span>
+                        </label>
+                        <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
+                            spellcheck="false" readonly></textarea>
+                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim" readonly>
+                            tags</label>
+                    </section>
+                    <section class="tpf__tag-block exclude relationships">
+                        <label>
+                            <input type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span><span class="landmark">Exclude </span>Relationships</span>
+                        </label>
+                        <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
+                            spellcheck="false" placeholder="*Ishtar*" readonly></textarea>
+                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim" readonly>
+                            tags</label>
+                    </section>
+                </section>
+                <section class="tpf__syntax" aria-describedby="tpf__syntax-header">
+                    <h3 id="tpf__syntax-header" class="landmark">Format</h3>
+                    <fieldset>
+                        <legend>Format</legend>
+                        <label>
+                            <input type="radio" name="format" id="tpf__opt-wildcard" value="wildcard" form=""
+                                checked><!--omit from parent form-->
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span>wildcards (*)</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="format" id="tpf__opt-regex" value="regex"
+                                form=""><!--omit from parent form-->
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span>regex</span>
+                        </label>
+                        <button type="button" class="question" aria-label="help">?</button>
+                    </fieldset>
+                </section>
+                <section class="actions" aria-describedby="tpf__header-submit">
+                    <h3 id="tpf__header-submit" class="landmark">
+                        Submit
+                    </h3><button class="tpf__apply" type="button">Apply filters</button>
+                </section>
+                <dl>
+                    <dt class="tpf__config-head expanded">
+                        <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__config"
+                            aria-label="Settings">⚙️ Settings</button>
+                        <p class="footnote">
+                            <a href="#work-filters">Clear Filters</a>
+                        </p>
+                    </dt>
+                    <dd id="tpf__config" class="expandable">
+                        <label>
+                            <input id="tpf__setting-AO3-sav" type="checkbox">
+                            <span class="indicator" aria-hidden="true"></span>
+                            <span>AO3 Savior is installed</span>
+                            <span class="tpf__explanatory-text">(prevent conflict)</span>
+                        </label>
+                        <div class="actions">
+                            <button class="save" type="button">Export tag filters to file</button>
+                            <button class="load" type="button">Import saved tag filters</button>
                         </div>
-                        <section class="tpf__tag-block include characters">
-                            <label id="tpf__include-chars">
-                                <input type="checkbox">
-                                <span class="indicator" aria-hidden="true"></span>
-                                <span id="block-include-chars"><span class="landmark">Include </span>Characters</span>
-                            </label>
-                            <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
-                                spellcheck="false" placeholder="Gilgamesh, Enkidu"></textarea>
-                            <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
-                                tags</label>
-                        </section>
-                        <section class="tpf__tag-block include relationships">
-                            <label>
-                                <input type="checkbox">
-                                <span class="indicator" aria-hidden="true"></span>
-                                <span><span class="landmark">Include </span>Relationships</span>
-                            </label>
-                            <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
-                                spellcheck="false" placeholder="Gilgamesh*Enkidu, Enkidu*Gilgamesh"></textarea>
-                            <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
-                                tags</label>
-                        </section>
-                    </section>
-                    <section class="tpf__wrap" aria-describedby="tpf__header-exclude">
-                        <div class="tpf__head">
-                            <h4 id="tpf__header-exclude">Exclude</h4>
-                            <button type="button" class="question" aria-label="help">?</button>
-                        </div>
-                        <section class="tpf__tag-block exclude characters">
-                            <label>
-                                <input type="checkbox">
-                                <span class="indicator" aria-hidden="true"></span>
-                                <span><span class="landmark">Exclude </span>Characters</span>
-                            </label>
-                            <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
-                                spellcheck="false"></textarea>
-                            <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim"
-                                    aria-label="N">
-                                tags</label>
-                        </section>
-                        <section class="tpf__tag-block exclude relationships">
-                            <label>
-                                <input type="checkbox">
-                                <span class="indicator" aria-hidden="true"></span>
-                                <span><span class="landmark">Exclude </span>Relationships</span>
-                            </label>
-                            <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
-                                spellcheck="false" placeholder="*Ishtar*"></textarea>
-                            <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim">
-                                tags</label>
-                        </section>
-                    </section>
-                    <section class="tpf__settings" aria-describedby="tpf__header-settings">
-                        <h3 id="tpf__header-settings" class="landmark">Settings</h3>
-                        <fieldset>
-                            <legend>
-                                Format
-                            </legend>
-                            <label>
-                                <input type="radio" name="format" id="tpf__opt-wildcard" value="wildcard" form=""
-                                    checked><!--omit from parent form-->
-                                <span class="indicator" aria-hidden="true"></span>
-                                <span>wildcards (*)</span>
-                            </label>
-                            <label>
-                                <input type="radio" name="format" id="tpf__opt-regex" value="regex"
-                                    form=""><!--omit from parent form-->
-                                <span class="indicator" aria-hidden="true"></span>
-                                <span>regex</span>
-                            </label>
-                            <button type="button" class="question" aria-label="help">?</button>
-                        </fieldset>
-                    </section>
-                    <section class="actions" aria-describedby="tpf__header-submit">
-                        <h3 id="tpf__header-submit" class="landmark">
-                            Submit
-                        </h3><button class="tpf__apply" type="button">Apply filters</button>
-                    </section>
-                    <dl>
-                        <dt id="tpf__config-head" class="filter-toggle collapsed">
-                            <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__config-head"
-                                aria-label="Settings">⚙️ Settings</button>
-                            <p class="footnote">
-                                <a href="#work-filters">Clear Filters</a>
-                            </p>
-                        </dt>
-                        <dd class="tpf__config expandable">
-                            <label>
-                                <input id="tpf__setting-AO3-sav" type="checkbox">
-                                <span class="indicator" aria-hidden="true"></span>
-                                <span>AO3 Savior is installed</span>
-                                <span class="explanatory-text">(prevent conflict)</span>
-                            </label>
-                            <div class="actions">
-                                <button class="save" type="button">Export tag filters to file</button>
-                                <button class="load" type="button">Import saved tag filters</button>
-                            </div>
-                        </dd>
-                    </dl>
-                </dd>
-            </dl>
-        </fieldset>`
-    const infoModalHTML = `<div class="tpf__menu popup">
-        <details class="info-section">
-            <summary class="section-head">Basics</summary>
+                    </dd>
+                </dl>
+            </dd>
+        </dl>
+    </fieldset>`
+    const infoModalHTML = `<div class="tpf__ui popup">
+        <details class="tpf__info-section">
+            <summary>Basics</summary>
             <p>The script cannot use AO3's tag system, but instead <strong>matches
                     the literal tag text</strong>. <br>
                 Add synonyms where necessary
@@ -204,12 +234,12 @@ TO DO : Requires beta testing
             <ul>
                 <li>Only character and relationship tags are checked.</li>
                 <li>Comma = OR
-                    <table class="matching-basics">
+                    <table class="tpf__matching-basics">
                         <thead>
                             <tr>
                                 <th scope="col"></th>
                                 <th scope="col">search term(s)</th>
-                                <th scope="col" class="narrow">N</th>
+                                <th scope="col">N</th>
                                 <th scope="col">result</th>
                             </tr>
                         </thead>
@@ -239,8 +269,8 @@ TO DO : Requires beta testing
             <p>⚠ If you need a blacklist, <a href="https://greasyfork.org/en/scripts/3579-ao3-savior">AO3 savior</a>
                 does it better.</p>
         </details>
-        <details class="info-section">
-            <summary class="section-head">How to filter</summary>
+        <details class="tpf__info-section">
+            <summary>How to filter</summary>
             <p>Choose between <strong>*wildcards</strong> (default) or <strong>regex</strong> (more flexible, for
                 advanced users). <br>
                 Wildcards are enough for most purposes:</p>
@@ -266,8 +296,8 @@ TO DO : Requires beta testing
                     "The&nbsp;Master&nbsp;(Doctor&nbsp;Who)"
                 </li>
             </ul>
-            <details class="rx-cheatsheet">
-                <summary class="cheatsheet-head">Regex cheatsheet</summary>
+            <details class="tpf__rx-cheatsheet">
+                <summary>Regex cheatsheet</summary>
                 <h4>Characters</h4>
                 <dl>
                     <dt>.</dt>
@@ -306,10 +336,10 @@ TO DO : Requires beta testing
                     javascript, which does not support all regex options.</p>
             </details>
         </details>
-        <details class="info-section">
-            <summary class="section-head">Examples</summary>
+        <details class="tpf__info-section">
+            <summary>Examples</summary>
             <h5>Example 1 (with *wildcards)</h5>
-            <table class="matching-examples">
+            <table class="tpf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -339,7 +369,7 @@ TO DO : Requires beta testing
                 </tbody>
             </table>
             <h5>Example 2 (with *wildcards): <br></h5>
-            <table class="matching-examples">
+            <table class="tpf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -360,7 +390,7 @@ TO DO : Requires beta testing
                 </tbody>
             </table>
             <h5>Example 3 (with regex): <br></h5>
-            <table class="matching-examples">
+            <table class="tpf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -383,7 +413,7 @@ TO DO : Requires beta testing
             <h5>Example 4 (with regex): <br>
                 you don't want to read fics focusing on original
                 characters, but don't mind if they're part of the story.</h5>
-            <table class="matching-examples">
+            <table class="tpf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -404,7 +434,7 @@ TO DO : Requires beta testing
                 </tbody>
             </table>
             <h5>Example 5a (with *wildcards)</h5>
-            <table class="matching-examples">
+            <table class="tpf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -438,7 +468,7 @@ TO DO : Requires beta testing
                 We could list them all, or...
             </p>
             <h5>Example 5b (with regex)</h5>
-            <table class="matching-examples">
+            <table class="tpf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -469,21 +499,20 @@ TO DO : Requires beta testing
     </div>`
 
     // add collapsible menu directly above AO3's filter sidebar. Get DOM objects.
-    const filterSidebar = $('#work-filters')
-    if (!filterSidebar) { return }
-    filterSidebar.insertAdjacentHTML('afterbegin', sidebarHTML)
+    if (!ao3FilterSidebar) { return }
+    ao3FilterSidebar.insertAdjacentHTML('afterbegin', sidebarHTML)
     const filterMenu = {
-        container: $('.tpf__filter-head'),
-        expander: $('.tpf__filter-head .expander'),
+        container: $('.tpf__sidebar-head'),
+        expander: $('.tpf__sidebar-head .expander'),
         toggle: $('#tpf__filter-toggle'),
     }
     const settingsMenu = {
-        container: $('#tpf__config-head'),
-        expander: $('#tpf__config-head .expander'),
+        container: $('.tpf__config-head'),
+        expander: $('.tpf__config-head .expander'),
         AO3sav: $('#tpf__setting-AO3-sav'),
     }
-    const textFields = $$('.tpf__menu :is(input[type="text"], textarea)'),
-        checkboxFields = $$('.tpf__menu input[type="checkbox"]')
+    const textFields = $$('.tpf__tag-block :is(input[type="text"], textarea)'),
+        checkboxFields = $$('.tpf__tag-block input[type="checkbox"]')
 
     // DEFINE FILTER FIELDS + GETTERS
     class tagBlock { // set elements, get values. If the checkbox is unselected, disable the other fields.
@@ -507,11 +536,20 @@ TO DO : Requires beta testing
         }
 
         get check() { return this.checkboxField.checked }
-        get pattern() { return this.textareaField.value.split(',').map(s => s.trim()) } // TODO clean up line breaks. returns array
-        get tagLim() { return this.tagLimitField.value.trim() } // TODO validate numbers (and limit?)
+        get pattern() { return this.textareaField.value.split(',').map(s => removeDiacriticsAndExtraSpaces(s)) }
+        get tagLim() { return this.tagLimitField.value.trim() }
 
-        get isValid() { return this.pattern.length && this.tagLim.length } // ok to save
+        get isValid() { return this.pattern.length > 0 && this.tagLim.length } // ok to save
         get checkTags() { return this.check && this.isValid } // ok to commit
+    }
+    class currentFilter { // returns the filter values at the time the object is created
+        constructor(tagBlock) {
+            this.check = tagBlock.check
+            this.pattern = tagBlock.pattern
+            this.tagLim = tagBlock.tagLim
+            this.isValid = (this.pattern.length > 0 && this.tagLim > 0)
+            this.checkTags = (this.check && this.isValid)
+        }
     }
 
     // SET INITIAL VALUES ------------------------------------------------------------
@@ -526,7 +564,7 @@ TO DO : Requires beta testing
         relationships = new tagBlock('include', 'relationships', stored.relationships),
         excludedCharacters = new tagBlock('exclude', 'characters', stored.excludedCharacters),
         excludedRelationships = new tagBlock('exclude', 'relationships', stored.excludedRelationships)
-    $(`.tpf__settings input[value=${stored.format}]`).checked = true
+    $(`.tpf__syntax input[value=${stored.format}]`).checked = true
 
     // Filter on load: add 20ms delay to prevent conflicts with AO3 savior (which runs after a 15ms delay)
     if (filterIsOn) {
@@ -546,7 +584,7 @@ TO DO : Requires beta testing
     settingsMenu.AO3sav.addEventListener('change', function () { GM_setValue('ao3SaviorIsInstalled', this.checked) })
 
     // BUTTON: info/help popup
-    for (const infoButton of $$('.tpf__menu .question')) {
+    for (const infoButton of $$('.tpf__ui .question')) {
         infoButton.addEventListener('click', openAo3Modal)
     }
 
@@ -558,7 +596,7 @@ TO DO : Requires beta testing
     })
 
     // BUTTON: Clear filters
-    $('.tpf__menu .footnote a').addEventListener('click', () => {
+    $('.tpf__ui .footnote a').addEventListener('click', () => {
         for (const field of textFields) { field.value = field.defaultValue }
         for (const field of checkboxFields) {
             field.checked = false
@@ -606,14 +644,16 @@ TO DO : Requires beta testing
         ].forEach(([settingName, tagSet]) => {
             GM_setValue(settingName, { check: tagSet.check, pattern: tagSet.pattern, tagLim: tagSet.tagLim })
         })
-        GM_setValue('format', $('input[name="format"]:checked').value)
+        GM_setValue('format', $('.tpf__syntax input[name="format"]:checked').value)
     }
 
     // Hide works which don't prioritise your characters/relationships.
     function applyFilters() {
 
         noFilterYet = false
-        const format = $('input[name="format"]:checked').value
+        const format = $('.tpf__syntax input[name="format"]:checked').value
+
+        // TODO: create obj to retrieve filter values ONCE (currently happening once per loop!)
 
         // If no valid characters/relationships are found, exit early (and reveal all)
         if (!characters.checkTags && !relationships.checkTags && !excludedCharacters.checkTags && !excludedRelationships.checkTags) {
@@ -635,6 +675,7 @@ TO DO : Requires beta testing
 
             // Show work if it prioritises your tags and none of the blacklisted tags. Otherwise, hide it.
             const workIsValid = relMatch && charMatch && !xRelMatch && !xCharMatch
+            debugLog(`firstNchars = ${firstNchars}`)
             debugLog(`workIsValid = ${workIsValid}:
                 relMatch = ${relMatch}, charMatch = ${charMatch}
                 xRelMatch = ${xRelMatch}, xCharMatch = ${xCharMatch}`)
@@ -642,11 +683,11 @@ TO DO : Requires beta testing
             if (workIsValid) { continue }
 
             // If AO3 savior hid the work, add warning <span> to its fold element, then continue to the next work.
-            if (works[i].classList.contains('ao3-savior-work')) {
-                if (works[i].querySelector('.tpf-reason-for-ao3-sav')) {
+            if (stored.ao3SaviorIsInstalled && works[i].classList.contains('ao3-savior-work')) {
+                if (!works[i].querySelector('.tpf-reason-for-ao3-sav')) {
                     const tpfReason = '<span class = "tpf-reason-for-ao3-sav">; does not prioritise your tags</span>'
-                    const reasonSpan = works[i].querySelector('.ao3-savior-reason')
-                    reasonSpan.innerHTML = reasonSpan.innerHTML.replace('.)</span>', tpfReason + '.)</span>')
+                    const ao3savBlockedTag = works[i].querySelector('.ao3-savior-reason strong')
+                    ao3savBlockedTag.insertAdjacentHTML('afterend', tpfReason)
                 }
                 continue
             }
@@ -671,8 +712,9 @@ TO DO : Requires beta testing
         if (!tagSet.checkTags) { return tagSet.defaultMatchResult } // show work (TRUE) for included tags, hide (FALSE) for excluded
         tagsToCheck = tagsToCheck.slice(0, tagSet.tagLim)
         for (const userTag of tagSet.pattern) {
-            const pattern = (format === 'wildcard') ? wildcardPattern(userTag) : userTag // FIX magic string
-            const rx = RegExp(removeDiacriticsAndExtraSpaces(pattern), 'gi')
+            let pattern = removeDiacriticsAndExtraSpaces(userTag)
+            pattern = (format === 'wildcard') ? wildcardPattern(userTag) : userTag // FIX magic string
+            const rx = RegExp(pattern, 'gi')
             for (const workTag of tagsToCheck) {
                 if (rx.test(workTag)) { return true }
             }
@@ -682,11 +724,9 @@ TO DO : Requires beta testing
 
     // Format wildcard * search pattern (escaping all other special characters)
     function wildcardPattern(pattern) {
-        pattern = '\b' + pattern
-            .replaceAll(/[.+?^=!:${}()|\][/\\]/g, '\\$&')
-            .replaceAll('*', '.*')
-            + '\b'
-        return pattern
+        return '\\b'
+            + pattern.replaceAll(/[.+?^=!:${}()|[\]/\\]/g, '\\$&').replaceAll('*', '.*')
+            + '\\b'
     }
 
     // Remove diacritics (this will not affect actual letters like ñ) and extra spaces
@@ -696,6 +736,7 @@ TO DO : Requires beta testing
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/gi, '')
             .replace(/[\s\n]{2,}/g, ' ')
+            .trim()
     }
 
     // Mimic AO3 savior fold (not an exact copy: AO3 savior wraps the work blurb in a div)
@@ -704,7 +745,7 @@ TO DO : Requires beta testing
             container: createNewElement('div', 'tpf-fold'),
             note: createNewElement('span', 'tpf-fold-note', 'This work does not prioritise your preferred tags.'),
             reason: createNewElement('span', 'tpf-hide-reason'),
-            btn: createNewElement('button', 'tpf-fold-btn', 'Show Work'),
+            btn: createNewElement('button', 'tpf-fold-btn', 'Show'),
         }
 
         fold.container.append(fold.note, fold.reason, fold.btn)
@@ -715,7 +756,7 @@ TO DO : Requires beta testing
 
     function toggleHideWork(fold, forceToggle) {
         const isHidden = fold.container.classList.toggle('tpf-hidden', forceToggle)
-        fold.btn.textContent = (isHidden ? 'Show' : 'Hide') + ' Work'
+        fold.btn.textContent = isHidden ? 'Show' : 'Hide'
     }
 
     // AO3 help/info modal: manually replicate the open event, allow AO3 to handle closing
@@ -798,32 +839,183 @@ TO DO : Requires beta testing
         &.tpf-fold { display: none }
     }`
 
-    const infoPopupCss = `.tpf__menu.popup {
+    GM_addStyle(hiderCss + `
+.tpf__ui {
+    font-size: 0.9em;
+
+    & h3, h4, dt, dd {
+        margin: unset;
+    }
+    & button {
+        margin: 0.15em 0;
+    }
+
+    /* SIDEBAR */
+
+    &.tpf__sidebar {
+        background-color: antiquewhite;
+        padding: 0.643em;
+    }
+    & .tpf__sidebar-head {
+        display: flex;
+        justify-content: space-between;
+        & .expander {
+            font-size: 1.2em;
+        }
+        & #tpf__filter-toggle {
+            width:2.5em;
+            &.current {
+                font-weight: 700;
+            }
+            &:hover, &:focus-visible {
+                color: #900;
+                border-top: 1px solid #999;
+                border-left: 1px solid #999;
+                box-shadow: inset 2px 2px 2px #bbb;
+            }
+        }
+    }
+
+    & .tpf__wrap {
+        margin-top: 1.3em;
+        & > .tpf__head {
+            padding: 0.1em;
+            border-bottom: solid 2px firebrick;
+        }
+    }        
+    & .tpf__tag-block, & .tpf__wrap .tpf__head {
+        margin-bottom: 0.4em;
+    }
+    & .tpf__syntax {
+        margin-top: 2em;
+    }
+    & .tpf__apply {
+        margin: 1em 0;
+        &::before { content: "🡆\\00a0" } /*00a0 for nbsp, slash escaped*/
+    }
+    & .tpf__config-head {
+        display: flex;
+        justify-content: space-between;
+        & .expander {
+            font-size: 1.1em;
+        }
+        & .footnote {
+            min-width: fit-content;
+        }
+        & + .expandable {
+            background-color: #FCF5EB;
+            box-shadow: inset 0px 7px 7px -7px #999;
+            padding: 1em 0.5em;
+            box-sizing: border-box;
+            display: grid;
+            row-gap: 0.5em;
+            & .save::before { content: "💾" ; float:left }
+            & .load::before { content: "🠋" ; text-decoration: underline; float:left}
+        }
+    }
+
+    /* MENU ELEMENTS */
+
+    & dt.collapsed + dd.expandable {
+        display: none;        
+    }
+    & textarea:read-only, input[type=text]:read-only {
+        background-color: #FCF5EB;
+        color: #525252;
+    }
+    & .tpf__tag-list {
+        resize: vertical;
+        width: 100%;
+        box-sizing: border-box;
+        min-height: unset;
+        margin: 0.25em 0 0.35em 0;
+        padding: 0.3em;
+        font-family: monospace;
+    }
+    & .tpf__within {
+        display: block;
+        text-align: right;
+        & .tpf__tag-lim {
+            width: 1.3em;
+            height: 1.3em;
+            text-align: center;
+        }
+    }
+    & fieldset {
+        margin: 0 0 0.6em 0;
+        box-sizing: border-box;
+        width: 100%;
+        box-shadow: inset 0 1px 2px #ccc; /*mimic AO3 textboxes*/
+        background-color: #FCF5EB;
+        & .question {
+            width: unset;
+            font-size: 1em;
+            vertical-align:text-top;
+            float: right;
+        }
+    }
+    & label {
+        white-space: nowrap;
+        margin-right: unset;
+    }
+    & .tpf__explanatory-text {
+        display: block;
+        font-size: 0.8em;
+        margin-left: 2em;
+        line-height: 1.1em;
+        color: #525252;
+    }
+    & .actions button {
+        box-sizing: border-box;
+        width: 100%;
+        height: auto;
+    }
+    & .question {
+        padding:0 0.55em;
+        margin: 0 1px;
+        background: #d1e1ef;
+        color: #2a547c;
+        border: 1px solid #2a547c;
+        border-radius: 0.75em;
+        box-shadow: -1px -1px 2px rgba(0,0,0,0.25);
+        font: bold 0.75em Georgia, serif;
+        vertical-align: super;
+        cursor: help;
+    }
+    & .footnote {
+        padding-right: unset;
+    }
+
+    /* MODAL POPUP */
+
+    &.popup {
         font-size: 1em;
-        & .search-term {
+        & .tpf__search-term {
             font-family: 'Courier New', Courier, monospace;
         }
-        & .str-match {
+        & .tpf__str-match {
             text-decoration: underline;
         }
-        & .section-head {
-            border-bottom: solid 2px firebrick;
-            font-family: Georgia, serif;
-            font-size: 1.15em;
-            line-height: 1.5em;
-            font-weight: 700;
-        }       
-        & .info-section {
+        & > details {
             margin: 0.9em 0;
             & > :last-child {
                 margin-bottom: 2em; /*collapsible spacing*/
             }
+            & > summary {
+                border-bottom: solid 2px firebrick;
+                font-family: Georgia, serif;
+                font-size: 1.15em;
+                line-height: 1.5em;
+                font-weight: 700;
+            }
         }
-
-        & .rx-cheatsheet {
+        & summary {
+            cursor: default;
+        }
+        & .tpf__rx-cheatsheet {
             padding-left: 1.5em;
             border-left: solid #dadada 4px;
-            & summary.cheatsheet-head {
+            & summary {
                 margin-left: -1.5em;
                 background-color: #dadada;
                 padding: 0.2em;
@@ -844,7 +1036,7 @@ TO DO : Requires beta testing
                     margin-right: 1em;
                 }
             }
-            & p, ul {
+            & p, ul, li {
                 margin: 0;
                 padding: unset inherit;
             }
@@ -860,192 +1052,34 @@ TO DO : Requires beta testing
             background-color:floralwhite;
             & th, td {
                 padding: 0.4em;
-                &.narrow {
-                    width: 1em;
-                }
             }
-            &.matching-basics {
+            &.tpf__matching-basics {
                 border: 1px solid cadetblue;
                 thead {
                     background-color: lightblue;
-                    & th:nth-child(1), th:nth-child(2) { width: 8em; }
-                    & th:nth-child(3) { width: 1em;}
-                    & th:nth-child(2), th:nth-child(3) { text-align: center; }
+                    & th:nth-child(-n + 2) { width: 8em; } /* first two cols. N starts at 0, so -n+2: 0+2, -1+2 */
+                    & th:nth-child(3) { width: 1em; }
                 }
-                & td:nth-child(1), td:nth-child(2)  {
-                    font-family: 'Courier New', Courier, monospace;
-                    font-size: 1.1em;
-                    text-align: center;
-                }
+                & th:nth-child(-n + 3) { text-align: center; }
+                & td:nth-child(-n + 3) { text-align: center; font: 1.1em 'Courier New', Courier, monospace; }
             }
-            &.matching-examples {
+            &.tpf__matching-examples {
                 border: 1px solid firebrick;
-                & thead {
-                    background-color: lightpink;
-                    & th:nth-child(2) { width: 7em;}
-                    & th:nth-child(4) { width: 1em;}
-                }
                 & th + th, td + td {
                     border-left: 1px solid palevioletred;
                 }
-                & td:nth-child(2), td:nth-child(3), td:nth-child(4) {
-                    font-family: 'Courier New', Courier, monospace;
-                    font-size: 1.1em;
+                & thead {
+                    background-color: lightpink;
+                    & th:nth-child(2) { width: 7em; }
+                    & th:nth-child(4) { width: 1em; }
                 }
-                & td:nth-child(4) {
-                    text-align: center;
-                }
-            }
-        }
-    }`
-
-    GM_addStyle(hiderCss + `
-.tpf__menu {
-    font-size: 0.9em;
-
-    & h3, h4, dt, dd {
-        margin: unset;
-    }
-    & button {
-        margin: 0.25em 0;
-    }
-
-    /* SIDEBAR MENU */
-
-    &.tpf__filters {
-        background-color: antiquewhite;
-        padding: 0.643em;
-    }
-
-    & .tpf__filter-head {
-        display: flex;
-        justify-content: space-between;
-        & .expander {
-            font-size: 1.2em;
-        }
-        & #tpf__filter-toggle {
-            width:2.5em;
-            &.current {
-                font-weight: 700;
-            }
-            &:hover, &:focus-visible {
-                color: #900;
-                border-top: 1px solid #999;
-                border-left: 1px solid #999;
-                box-shadow: inset 2px 2px 2px #bbb;
+                & td:nth-child(2), td:nth-child(3), td:nth-child(4) { font: 1.1em 'Courier New', Courier, monospace; }
+                & td:nth-child(4) { text-align: center; }
             }
         }
     }
-    & .tpf__apply {
-        margin: 1em 0;
-        &::before { content: "🡆\\00a0" } /*00a0 for nbsp, slash escaped*/
-    }
-    & #tpf__config-head {
-        display: flex;
-        justify-content: space-between;
-        & .expander {
-            font-size: 1.1em;
-        }
-        & .footnote {
-            min-width: fit-content;
-        }
-    }
-    & .tpf__config.expandable {
-        background-color: #FCF5EB;
-        box-shadow: inset 0px 7px 7px -7px #999;
-        padding: 1em 0.5em;
-        box-sizing: expandable;
-        display: grid;
-        row-gap: 0.5em;
-        & .save::before { content: "💾" ; float:left }
-        & .load::before { content: "🠋" ; text-decoration: underline; float:left}
-    }
 
-    & section {
-        &.tpf__wrap {
-            margin-top: 1.3em;
-        }        
-        &.tpf__tag-block, &.tpf__wrap .tpf__head {
-            margin-bottom: 0.4em;
-        }
-        &.tpf__settings {
-            margin-top: 2em;
-        }
-    }
-
-    /* MENU ELEMENTS */
-
-    & dt.collapsed + dd.expandable {
-        display: none;        
-    }
-    & .tpf__wrap > .tpf__head {
-        padding: 0.1em;
-        border-bottom:solid 2px firebrick;
-    }
-    & textarea:read-only, input[type=text]:read-only {
-        background-color: #FCF5EB;
-        color: #525252;
-    }
-    & .tpf__tag-list {
-        resize: vertical;
-        width: 100%;
-        box-sizing: border-box;
-        min-height: unset;
-        margin-top: 0.15em;
-        padding: 0.3em;
-        font-family: monospace;
-    }
-    & .tpf__within {
-        display: block;
-        text-align: right;
-        & .tpf__tag-lim {
-            width: 1.1em;
-        }
-    }
-    & fieldset {
-        margin: 0 0 0.6em 0;
-        box-sizing: border-box;
-        width: 100%;
-        box-shadow: inset 0 1px 2px #ccc; /*mimic AO3 textboxes*/
-        background-color: #FCF5EB;
-        & .question {
-            width: unset;
-            font-size: 1em;
-            vertical-align:text-top;
-            float: right;
-        }
-    }
-    & label {
-        white-space: nowrap;
-    }
-    & .explanatory-text {
-        display: block;
-        font-size: 0.8em;
-        margin-left: 2em;
-        line-height: 1.1em;
-        color: #525252;
-    }
-    & .actions button {
-        box-sizing: border-box;
-        width: 100%;
-        height: auto;
-    }
-    & .question {
-        padding:0 0.425em;
-        margin: 0 1px;
-        border: 1px solid;
-        border-radius: 0.75em;
-        font-size: 0.75em;
-        vertical-align: super;
-        cursor: help;
-        font-family: Georgia, serif;
-        font-weight: bold;
-    }
-    & .footnote {
-        padding-right: unset;
-    }
-}`
-        + infoPopupCss)
+}`)
 
     function debugLog(input) {
         if (enableVerboseLogging) { console.log(input) }
