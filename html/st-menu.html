@@ -8,84 +8,84 @@
 
 <body>
     <h3 class="landmark heading">Tag priority</h3>
-    <fieldset class="tpf__ui tpf__sidebar">
+    <fieldset class="pmf__ui pmf__sidebar">
         <legend>Tag priority:</legend> <!--is this redundant?-->
         <dl>
-            <dt class="tpf__sidebar-head expanded">
-                <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__sidebar-content">
+            <dt class="pmf__sidebar-head expanded">
+                <button type="button" class="expander" aria-expanded="false" aria-controls="pmf__sidebar-content">
                     Tag priority
                 </button>
-                <button type="button" id="tpf__filter-toggle" class="current" aria-pressed="true">On</button>
+                <button type="button" id="pmf__filter-toggle" class="current" aria-pressed="true">On</button>
             </dt>
-            <dd id="tpf__sidebar-content" class="expandable">
-                <section class="tpf__wrap" aria-describedby="tpf__header-include">
-                    <div class="tpf__head">
-                        <h4 id="tpf__header-include">Include</h4> (at least one)
+            <dd id="pmf__sidebar-content" class="expandable">
+                <section class="pmf__wrap" aria-describedby="pmf__header-include">
+                    <div class="pmf__head">
+                        <h4 id="pmf__header-include">Include</h4> (at least one)
                         <button type="button" class="question" aria-label="help">?</button>
                     </div>
-                    <section class="tpf__tag-block include characters">
-                        <label id="tpf__include-chars">
+                    <section class="pmf__tag-block include characters">
+                        <label id="pmf__include-chars">
                             <input type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
                             <span id="block-include-chars"><span class="landmark">Include </span>Characters</span>
                         </label>
-                        <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
+                        <textarea class="pmf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
                             spellcheck="false" placeholder="Gilgamesh, Enkidu" readonly></textarea>
-                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim" readonly>
+                        <label class="pmf__within">...within the first <input type="text" class="pmf__tag-lim" readonly>
                             tags</label>
                     </section>
-                    <section class="tpf__tag-block include relationships">
+                    <section class="pmf__tag-block include relationships">
                         <label>
                             <input type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
                             <span><span class="landmark">Include </span>Relationships</span>
                         </label>
-                        <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
+                        <textarea class="pmf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
                             spellcheck="false" placeholder="Gilgamesh*Enkidu, Enkidu*Gilgamesh" readonly></textarea>
-                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim" readonly>
+                        <label class="pmf__within">...within the first <input type="text" class="pmf__tag-lim" readonly>
                             tags</label>
                     </section>
                 </section>
-                <section class="tpf__wrap" aria-describedby="tpf__header-exclude">
-                    <div class="tpf__head">
-                        <h4 id="tpf__header-exclude">Exclude</h4>
+                <section class="pmf__wrap" aria-describedby="pmf__header-exclude">
+                    <div class="pmf__head">
+                        <h4 id="pmf__header-exclude">Exclude</h4>
                         <button type="button" class="question" aria-label="help">?</button>
                     </div>
-                    <section class="tpf__tag-block exclude characters">
+                    <section class="pmf__tag-block exclude characters">
                         <label>
                             <input type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
                             <span><span class="landmark">Exclude </span>Characters</span>
                         </label>
-                        <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
+                        <textarea class="pmf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
                             spellcheck="false" readonly></textarea>
-                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim" readonly>
+                        <label class="pmf__within">...within the first <input type="text" class="pmf__tag-lim" readonly>
                             tags</label>
                     </section>
-                    <section class="tpf__tag-block exclude relationships">
+                    <section class="pmf__tag-block exclude relationships">
                         <label>
                             <input type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
                             <span><span class="landmark">Exclude </span>Relationships</span>
                         </label>
-                        <textarea class="tpf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
+                        <textarea class="pmf__tag-list" rows="3" autocomplete="off" autocapitalize="off"
                             spellcheck="false" readonly></textarea>
-                        <label class="tpf__within">...within the first <input type="text" class="tpf__tag-lim" readonly>
+                        <label class="pmf__within">...within the first <input type="text" class="pmf__tag-lim" readonly>
                             tags</label>
                     </section>
                 </section>
-                <section class="tpf__syntax" aria-describedby="tpf__syntax-header">
-                    <h3 id="tpf__syntax-header" class="landmark">Format</h3>
+                <section class="pmf__syntax" aria-describedby="pmf__syntax-header">
+                    <h3 id="pmf__syntax-header" class="landmark">Format</h3>
                     <fieldset>
                         <legend>Format</legend>
                         <label>
-                            <input type="radio" name="format" id="tpf__opt-wildcard" value="wildcard" form=""
+                            <input type="radio" name="format" id="pmf__opt-wildcard" value="wildcard" form=""
                                 checked><!--omit from parent form-->
                             <span class="indicator" aria-hidden="true"></span>
                             <span>wildcards (*)</span>
                         </label>
                         <label>
-                            <input type="radio" name="format" id="tpf__opt-regex" value="regex"
+                            <input type="radio" name="format" id="pmf__opt-regex" value="regex"
                                 form=""><!--omit from parent form-->
                             <span class="indicator" aria-hidden="true"></span>
                             <span>regex</span>
@@ -93,32 +93,32 @@
                         <button type="button" class="question" aria-label="help">?</button>
                     </fieldset>
                 </section>
-                <section class="actions" aria-describedby="tpf__header-submit">
-                    <h3 id="tpf__header-submit" class="landmark">
+                <section class="actions" aria-describedby="pmf__header-submit">
+                    <h3 id="pmf__header-submit" class="landmark">
                         Submit
-                    </h3><button class="tpf__apply" type="button">Apply filters</button>
+                    </h3><button class="pmf__apply" type="button">Apply filters</button>
                 </section>
                 <dl>
-                    <dt class="tpf__config-head expanded">
-                        <button type="button" class="expander" aria-expanded="false" aria-controls="tpf__config"
+                    <dt class="pmf__config-head expanded">
+                        <button type="button" class="expander" aria-expanded="false" aria-controls="pmf__config"
                             aria-label="Settings">⚙️ Settings</button>
                         <p class="footnote">
                             <a href="#work-filters">Clear Filters</a>
                         </p>
                     </dt>
-                    <dd id="tpf__config" class="expandable">
+                    <dd id="pmf__config" class="expandable">
                         <div></div>
                         <label>
-                            <input id="tpf__setting-AO3-sav" type="checkbox">
+                            <input id="pmf__setting-AO3-sav" type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
                             <span>AO3 Savior is installed</span>
-                            <span class="tpf__explanatory-text">(prevent conflict; may require a reload)</span>
+                            <span class="pmf__explanatory-text">(prevent conflict on load)</span>
                         </label>
                         <label>
-                            <input id="tpf__setting-debug" type="checkbox">
+                            <input id="pmf__setting-debug" type="checkbox">
                             <span class="indicator" aria-hidden="true"></span>
                             <span>Debug mode</span>
-                            <span class="tpf__explanatory-text">(may require a reload)</span>
+                            <span class="pmf__explanatory-text">(may require a reload)</span>
                         </label>
                         <div class="actions">
                             <button class="save" type="button">Export tag filters to file</button>
@@ -132,8 +132,8 @@
 
     <div>&nbsp;</div>
 
-    <div class="tpf__ui popup">
-        <details class="tpf__info-section">
+    <div class="pmf__ui popup">
+        <details class="pmf__info-section">
             <summary>Basics</summary>
             <p>The script cannot use AO3's tag system, but instead <strong>matches
                     the literal tag text</strong>. <br>
@@ -145,7 +145,7 @@
             <ul>
                 <li>Only character and relationship tags are checked.</li>
                 <li>Comma = OR
-                    <table class="tpf__matching-basics">
+                    <table class="pmf__matching-basics">
                         <thead>
                             <tr>
                                 <th scope="col"></th>
@@ -177,10 +177,9 @@
                     "<span class="str-match">Íñ</span>igo")
                 </li>
             </ul>
-            <p>⚠ If you need a blacklist, <a href="https://greasyfork.org/en/scripts/3579-ao3-savior">AO3 savior</a>
-                does it better.</p>
+            <p>⚠ If you need a permanent blacklist, use <a href="https://greasyfork.org/en/scripts/3579-ao3-savior">AO3 savior</a>.</p>
         </details>
-        <details class="tpf__info-section">
+        <details class="pmf__info-section">
             <summary>How to filter</summary>
             <p>Choose between <strong>*wildcards</strong> (default) or <strong>regex</strong> (more flexible, for
                 advanced users). <br>
@@ -207,7 +206,7 @@
                     "The&nbsp;Master&nbsp;(Doctor&nbsp;Who)"
                 </li>
             </ul>
-            <details class="tpf__rx-cheatsheet">
+            <details class="pmf__rx-cheatsheet">
                 <summary>Regex cheatsheet</summary>
                 <h4>Characters</h4>
                 <dl>
@@ -247,10 +246,10 @@
                     javascript, which does not support all regex options.</p>
             </details>
         </details>
-        <details class="tpf__info-section">
+        <details class="pmf__info-section" open>
             <summary>Examples</summary>
             <h5>Example 1</h5>
-            <table class="tpf__matching-examples">
+            <table class="pmf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -274,13 +273,13 @@
                         </td>
                         <td>Exclude Characters</td>
                         <td>luke skywalker, han solo</td>
-                        <td>4</td>
+                        <td>2</td>
                         <td></td>
                     </tr>
                 </tbody>
             </table>
             <h5>Example 2:<br></h5>
-            <table class="tpf__matching-examples">
+            <table class="pmf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -292,16 +291,16 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td>relationships with Servalan</td>
+                        <td>relationships with Avon</td>
                         <td>Include Rels.</td>
-                        <td>servalan</td>
+                        <td>avon</td>
                         <td>1</td>
-                        <td>Servalan / Kerr Avon, Travis &amp; Servalan...</td>
+                        <td>Jarvik / Kerr Avon, Avon &amp; Servalan...</td>
                     </tr>
                 </tbody>
             </table>
-            <h5>Example 3 (with regex): THIS WILL NOT WORK<br></h5>
-            <table class="tpf__matching-examples">
+            <h5>Example 3 (with *wildcards):<br></h5>
+            <table class="pmf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -313,18 +312,25 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td><em>platonic</em> relationships with Servalan</td>
+                        <td><em>platonic</em> relationships with Avon</td>
                         <td>Include Rels.</td>
-                        <td>^[^\/]*servalan[^\/]*$</td>
+                        <td>avon</td>
                         <td>1</td>
-                        <td>relationships containing "Servalan" but not "/"</td>
+                        <td>Jarvik / Kerr Avon, Avon &amp; Servalan...</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>Exclude Rels.</td>
+                        <td>/*avon, avon*/</td>
+                        <td>1</td>
+                        <td>relationships containing "Avon" but not "/"</td>
                     </tr>
                 </tbody>
             </table>
             <h5>Example 4 (with regex): <br>
                 you don't want to read fics focusing on original
                 characters, but don't mind if they're part of the story.</h5>
-            <table class="tpf__matching-examples">
+            <table class="pmf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -345,7 +351,7 @@
                 </tbody>
             </table>
             <h5>Example 5a (with *wildcards)</h5>
-            <table class="tpf__matching-examples">
+            <table class="pmf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>
@@ -379,7 +385,7 @@
                 We could list them all, or...
             </p>
             <h5>Example 5b (with regex)</h5>
-            <table class="tpf__matching-examples">
+            <table class="pmf__matching-examples">
                 <thead>
                     <tr>
                         <th scope="col">We want…</th>

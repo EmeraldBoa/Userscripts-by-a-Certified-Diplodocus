@@ -4,7 +4,7 @@
     h3, h4 {
         font-family: Georgia, serif;
     }
-    .tpf__sidebar h4 {
+    .pmf__sidebar h4 {
         display: inline;
         font-weight: 700;
     }
@@ -48,7 +48,7 @@
 }
 
 /* CUSTOM MENU */
-.tpf__ui {
+.pmf__ui {
     font-size: 0.9em;
 
     & h3, h4, dt, dd {
@@ -60,17 +60,17 @@
 
     /* SIDEBAR */
 
-    &.tpf__sidebar {
+    &.pmf__sidebar {
         background-color: antiquewhite;
         padding: 0.643em;
     }
-    & .tpf__sidebar-head {
+    & .pmf__sidebar-head {
         display: flex;
         justify-content: space-between;
         & .expander {
             font-size: 1.2em;
         }
-        & #tpf__filter-toggle {
+        & #pmf__filter-toggle {
             width:2.5em;
             &.current {
                 font-weight: 700;
@@ -84,24 +84,24 @@
         }
     }
 
-    & .tpf__wrap {
+    & .pmf__wrap {
         margin-top: 1.3em;
-        & > .tpf__head {
+        & > .pmf__head {
             padding: 0.1em;
             border-bottom: solid 2px firebrick;
         }
     }        
-    & .tpf__tag-block, & .tpf__wrap .tpf__head {
+    & .pmf__tag-block, & .pmf__wrap .pmf__head {
         margin-bottom: 0.4em;
     }
-    & .tpf__syntax {
+    & .pmf__syntax {
         margin-top: 2em;
     }
-    & .tpf__apply {
+    & .pmf__apply {
         margin: 1em 0;
         &::before { content: "🡆\\00a0" } /*00a0 for nbsp, slash escaped*/
     }
-    & .tpf__config-head {
+    & .pmf__config-head {
         display: flex;
         justify-content: space-between;
         & .expander {
@@ -117,7 +117,7 @@
             box-sizing: border-box;
             display: grid;
             row-gap: 0.5em;
-            & #tpf__setting-debug + span + span::before { content: "🐞"; margin-right: 0.3em; }
+            & #pmf__setting-debug + span + span::before { content: "🐞"; margin-right: 0.3em; }
             & .save::before { content: "💾" ; float:left }
             & .load::before { content: "🠋" ; text-decoration: underline; float:left}
             & .actions { margin-top: 0.5em;}
@@ -133,7 +133,7 @@
         background-color: #FCF5EB;
         color: #525252;
     }
-    & .tpf__tag-list {
+    & .pmf__tag-list {
         resize: vertical;
         width: 100%;
         box-sizing: border-box;
@@ -142,10 +142,10 @@
         padding: 0.3em;
         font-family: monospace;
     }
-    & .tpf__within {
+    & .pmf__within {
         display: block;
         text-align: right;
-        & .tpf__tag-lim {
+        & .pmf__tag-lim {
             width: 1.3em;
             height: 1.3em;
 	        text-align: center;
@@ -168,7 +168,7 @@
         white-space: nowrap;
         margin-right: unset;
     }
-    & .tpf__explanatory-text {
+    & .pmf__explanatory-text {
         display: block;
         font-size: 0.8em;
         margin-left: 2em;
@@ -200,10 +200,10 @@
 
     &.popup {
         font-size: 1em;
-        & .tpf__search-term {
+        & .pmf__search-term {
             font-family: 'Courier New', Courier, monospace;
         }
-        & .tpf__str-match {
+        & .pmf__str-match {
             text-decoration: underline;
         }
         & > details {
@@ -222,7 +222,7 @@
         & summary {
             cursor: default;
         }
-        & .tpf__rx-cheatsheet {
+        & .pmf__rx-cheatsheet {
             padding-left: 1.5em;
             border-left: solid #dadada 4px;
             & summary {
@@ -263,7 +263,7 @@
             & th, td {
                 padding: 0.4em;
             }
-            &.tpf__matching-basics {
+            &.pmf__matching-basics {
                 border: 1px solid cadetblue;
                 thead {
                     background-color: lightblue;
@@ -273,7 +273,7 @@
                 & th:nth-child(-n + 3) { text-align: center; }
                 & td:nth-child(-n + 3) { text-align: center; font: 1.1em 'Courier New', Courier, monospace; }
             }
-            &.tpf__matching-examples {
+            &.pmf__matching-examples {
                 border: 1px solid firebrick;
                 & th + th, td + td {
                     border-left: 1px solid palevioletred;
