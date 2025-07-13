@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         AO3: Priority tag filter
+// @name         AO3: Prioritise My Faves
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.5.2
+// @version      2.0.0
 // @description  Hide work if chosen tags are late in sequence, or if blacklisted tags are early
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/works*
@@ -27,7 +27,7 @@ Known problems:
     - Cannot handle multiple searches at once (the script "remembers" one filter at a time)
     - Requires Tampermonkey / Violentmonkey (support for API functions GM_addStyle, GM_setValue, GM_getValues, GM_deleteValues)
 
-Planned features
+Planned / upcoming features
     - highlight matches (optional setting)
     - save settings, choose from dropdown (edit and delete from within settings)
     - back up / restore from file (may require an extension)
@@ -37,13 +37,13 @@ TO DO : Before publishing
 
     [x] expand debugLog
     [x] test examples from popup help
-    [ ] test on violentmonkey, chrome, mobile
+    [x] test on violentmonkey, chrome, mobile
     [x] remove "save/load" buttons
-    [ ] remove notes to self
+    [x] remove notes to self
     [x] write intro
     [x] name??
         [x] rename CSS classes to match (tpm__/tpm- > pmf__/pmf__)
-    [ ] publish as v2.0.0
+    [x] publish as v2.0.0
 
 
     [x] CTRL+H: expanded" > collapsed" (HTML fix)
@@ -76,6 +76,7 @@ TO DO : Requires beta testing
     [ ] wildcard search: eli*abeth should match "elizabeth/elisabeth" but not "elijah willabeth" (unexpected)
     [ ] more thorough debug report, with error handling and, ideally, a single block of text
     [ ] config setting: enable on user pages (off by default)
+    [ ] no wrapping for O[FM]?C
 
 '------------------------------------------------------------------------------------------------------------------ */
 (function () {
