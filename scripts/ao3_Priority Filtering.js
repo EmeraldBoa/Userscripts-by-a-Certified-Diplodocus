@@ -952,7 +952,7 @@ TO DO : Requires beta testing
         & .pmf__tag-lim {
             width: 1.3em;
             height: 1.3em;
-	        text-align: center;
+            text-align: center;
         }
     }
     & fieldset {

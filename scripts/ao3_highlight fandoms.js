@@ -11,6 +11,7 @@
 // @grant        none
 // @license      GPL-3.0-or-later
 // ==/UserScript==
+// FIXME: line 7 @match ignores urls with a terminal slash, e.g. http*://archiveofourown.org/users/CertifiedDiplodocus/
 
 /* jshint esversion:6 */ // ES6 in greasemonkey
 

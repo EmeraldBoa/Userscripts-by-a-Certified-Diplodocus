@@ -18,6 +18,7 @@ DONE
  TO DOs
     [ ] add SeriesURL (autofill when creating new series)
     [ ] show Part N of [SeriesName](SeriesURL) in markdown
+    [ ] replace window.location.href with window.location.pathname (see https://developer.mozilla.org/en-US/docs/Web/API/Location) for AO3 ONLY!
 
  MAYBEs
     [ ]
