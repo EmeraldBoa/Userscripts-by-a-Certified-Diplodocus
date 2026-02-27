@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         📋 Copy SERIES
+// @name         Copy AO3 series
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.2.1
+// @version      1.2.2
 // @description  copies story data from AO3 for pasting into MS Access
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/series/*
@@ -12,6 +12,9 @@
 /* TODOs
     [ ] tidy cleanup functions
     [ ] untangle formatting function (nested loop)
+    [x] redo formatting: Story0 { Title=; }
+    [x] return comma-separated authors/fandoms
+    [x] wordcount: remove decimal separator
 */
 
 (function () {
@@ -85,23 +88,28 @@
             Notes: seriesDetails[1]?.innerHTML || '',
         }
         trimObjectValues(seriesInfo)
+        seriesInfo.Description = cleanHTML(seriesInfo.Description)
+        seriesInfo.Link = cleanLink(seriesInfo.Link)
         Object.assign(storyCollection, { Series: seriesInfo })
 
         // iterate through stories
         $$('.work.blurb').forEach((work, i) => {
-            const heading = work.querySelectorAll('.header a')
+            const heading = work.querySelectorAll('h4.heading a')
             const stats = work.querySelector('.stats')
             const story = {
                 Title: heading[0].textContent,
                 Link: heading[0].href,
-                Author: heading[1].textContent,
-                Fandom: heading[3].textContent,
+                Author: getAO3taglist(work.querySelectorAll('h4.heading a[rel="author"]')),
+                Fandom: getAO3taglist(work.querySelectorAll('.fandoms.heading a')),
                 Summary: work.querySelector('.summary')?.innerHTML || '', // handle empty summaries
                 Wordcount: stats.querySelector('dd.words').textContent,
                 IsComplete: isAO3FicComplete(stats.querySelector('dd.chapters').textContent), // return boolean
                 SeriesPosition: getAO3SeriesPos(work.querySelector('.series')?.textContent || ''), // TODO handle fics in multiple series
             }
             trimObjectValues(story)
+            story.Summary = cleanHTML(story.Summary)
+            story.Link = cleanLink(story.Link)
+            story.Wordcount = removeThousandsSeparator(story.Wordcount)
             Object.assign(storyCollection, { [`Story${i}`]: story })
         })
 
@@ -120,7 +128,7 @@
                 '; '
             )
         })
-        return propertiesAndValues(stringifiedObj, ' = {', '};\n\n') + '};'
+        return propertiesAndValues(stringifiedObj, ' { ', ' }\n\n') + '}'
     }
 
     function iterateObject(obj, fn) { // TODO add fn arguments? or define a small function with the arguments set?
@@ -200,9 +208,13 @@
         return number.replace(/,/gi, '')
     }
 
+    function getAO3taglist(nodelist) {
+        return [...nodelist].map(tag => tag.innerText).join(', ')
+    }
+
     // FIXME: regex will BREAK html like <p>this text with <em>emphasis <br>across</em> two lines</p>
     function cleanHTML(html) {
-        if (!html.includes('<')) { return }
+        if (!html.includes('<')) { return html }
         return html
             .replaceAll(/<([/]?)b>/gi, '<$1strong>') //             - b to strong
             .replaceAll(/<([/]?)i>/gi, '<$1em>') //                 - i to em
@@ -317,9 +329,9 @@
 })()
 
 /*
-Series = {Title=Chaos Reign; Link=https://archiveofourown.org/series/2250978; Summary=<p>If a butterfly flapping its wings can cause a storm on another continent, the God of Chaos escaping with the Tesseract is bound to change the course of the universe.</p><p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>};
+Series { Title=Chaos Reign; Link=undefined; Description=<div>If a butterfly flapping its wings can cause a storm on another continent, the God of Chaos escaping with the Tesseract is bound to change the course of the universe.</div><div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>; Notes=<div>This story begins with Loki's escape during "Avengers - Endgame". It's <u>not</u> compliant with the "Loki" TV series and contains no spoilers for the show.</div> }
 
-Story0 = {Title=Chaos Reign; Link=https://archiveofourown.org/works/18634708; Author=fourth_rose; Summary=<p>Thor once told Loki that he could be more than the God of Mischief – forgetting that Loki has been more than that from the very beginning.</p>; Wordcount=110,534; IsComplete=true; SeriesName=Chaos Reign; SeriesPosition=1};
+Story0 { Title=Chaos Reign; Link=https://archiveofourown.org/works/18634708; Author=fourth_rose; Fandom=Marvel Cinematic Universe, Thor (Movies), The Avengers (Marvel Movies); Summary=<div>Thor once told Loki that he could be more than the God of Mischief – forgetting that Loki has been more than that from the very beginning.</div>; Wordcount=110534; IsComplete=true; SeriesPosition=1 }
 
-Story1 = {Title=Moments in Time; Link=https://archiveofourown.org/works/33973333; Author=fourth_rose; Summary=<p>It is in the nature of stories that there must be things which fall through the cracks, but some of them may still be worth keeping.</p>; Wordcount=8,045; IsComplete=false; SeriesName=Chaos Reign; SeriesPosition=2};
+Story1 { Title=Moments in Time; Link=https://archiveofourown.org/works/33973333; Author=fourth_rose; Fandom=Marvel Cinematic Universe, Thor (Movies), The Avengers (Marvel Movies); Summary=<div>It is in the nature of stories that there must be things which fall through the cracks, but some of them may still be worth keeping.</div>; Wordcount=9644; IsComplete=false; SeriesPosition=2 }
 */
