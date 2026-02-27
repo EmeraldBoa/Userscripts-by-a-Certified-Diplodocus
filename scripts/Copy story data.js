@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Copy story data
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.3
+// @version      1.3.1
 // @description  copies story data from AO3/FFN for pasting into MS Access or markdown (reddit)
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/*
@@ -16,12 +16,12 @@
 DONE
 
  TO DOs
-    [ ] add SeriesURL (autofill when creating new series)
+    [x] add SeriesURL (autofill when creating new series)
     [ ] show Part N of [SeriesName](SeriesURL) in markdown
     [ ] replace window.location.href with window.location.pathname (see https://developer.mozilla.org/en-US/docs/Web/API/Location) for AO3 ONLY!
 
  MAYBEs
-    [ ]
+    [ ] get SeriesDesc, SeriesNotes by calling the page
 
 !BUGS
 ----------------------------------------------------------------------------------------------------------------------
@@ -29,7 +29,7 @@ DONE
 /**
  * PURPOSE: copy story info from AO3 (work/bookmark page) and FFN (story page).
  *
- * INFO: Title, Link, Author, Summary, Wordcount, IsComplete (true/false), SeriesName, SeriesPosition
+ * INFO: Title, Link, Author, Summary, Wordcount, IsComplete (true/false), SeriesName, SeriesLink, SeriesPosition
  * FORMATS:
  *  - accdb (key=value; ...):   Title="some title"; Link="https://somelink..."; ...
  *  - reddit (markdown):        [*Title*](Link), by **Author** (Wordcount words)\n\n
@@ -44,7 +44,7 @@ DONE
     const errPrefix = '[Copy Story Data - userscript] \n⚠ Error: '
 
     // Data formatting
-    const story = { Title: '', Link: '', Author: '', Summary: '', Wordcount: '', IsComplete: '', SeriesName: '', SeriesPosition: '' }
+    const story = { Title: '', Link: '', Author: '', Summary: '', Wordcount: '', IsComplete: '', SeriesName: '', SeriesLink: '', SeriesPosition: '' }
     Object.seal(story) // properties may be changed but not added, deleted or configured
 
     // Website & button settings
@@ -128,6 +128,7 @@ DONE
         if ($('.chapter.previous')) { return }
         const preface = $('.preface')
         const meta = $('.meta')
+        const seriesinfo = meta.querySelector('dd.series .position')
 
         Object.assign(story, {
             Title: preface.querySelector('.title').textContent,
@@ -136,8 +137,9 @@ DONE
             Summary: preface.querySelector('.summary .userstuff')?.innerHTML || '', // handle empty summaries
             Wordcount: meta.querySelector('dd.words').textContent,
             IsComplete: isAO3FicComplete(meta.querySelector('dd.chapters').textContent), // return boolean
-            SeriesName: meta.querySelector('dd.series .position a')?.textContent || '',
-            SeriesPosition: getAO3SeriesPos(meta.querySelector('dd.series .position')?.textContent || ''),
+            SeriesName: seriesinfo?.querySelector('a')?.textContent || '',
+            SeriesLink: seriesinfo?.querySelector('a')?.href || '',
+            SeriesPosition: getAO3SeriesPos(seriesinfo?.textContent || ''),
         })
         cleanSummaryHTML()
 
@@ -148,6 +150,7 @@ DONE
 
     } else if ((URLregex.AO3.bookmark).test(currentURL)) {
         const header = $$('.header h4.heading a')
+        const seriesinfo = $('.series')
         Object.assign(story, {
             Title: header[0].textContent,
             Link: 'https://archiveofourown.org' + header[0].getAttribute('href'),
@@ -155,8 +158,9 @@ DONE
             Summary: $('.summary')?.innerHTML || '', // handle empty summaries
             Wordcount: $('dd.words').textContent,
             IsComplete: isAO3FicComplete($('dd.chapters').textContent), // return boolean
-            SeriesName: $('.series a')?.textContent || '',
-            SeriesPosition: getAO3SeriesPos($('.series')?.textContent || ''),
+            SeriesName: seriesinfo?.querySelector('a')?.textContent || '',
+            SeriesLink: seriesinfo?.querySelector('a')?.href || '',
+            SeriesPosition: getAO3SeriesPos(seriesinfo?.textContent || ''),
         })
         cleanSummaryHTML()
 
