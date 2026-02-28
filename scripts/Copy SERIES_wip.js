@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Copy AO3 series
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.2.2
+// @version      1.2.3
 // @description  copies story data from AO3 for pasting into MS Access
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/series/*
@@ -12,9 +12,8 @@
 /* TODOs
     [ ] tidy cleanup functions
     [ ] untangle formatting function (nested loop)
-    [x] redo formatting: Story0 { Title=; }
-    [x] return comma-separated authors/fandoms
-    [x] wordcount: remove decimal separator
+    [ ] store multiple series (for fics in more than one series)
+    [ ] add string like "source = AO3" to the start
 */
 
 (function () {
@@ -96,6 +95,7 @@
         $$('.work.blurb').forEach((work, i) => {
             const heading = work.querySelectorAll('h4.heading a')
             const stats = work.querySelector('.stats')
+            const thisSeries = getAO3SeriesEl(work, seriesInfo.Link)
             const story = {
                 Title: heading[0].textContent,
                 Link: heading[0].href,
@@ -104,7 +104,7 @@
                 Summary: work.querySelector('.summary')?.innerHTML || '', // handle empty summaries
                 Wordcount: stats.querySelector('dd.words').textContent,
                 IsComplete: isAO3FicComplete(stats.querySelector('dd.chapters').textContent), // return boolean
-                SeriesPosition: getAO3SeriesPos(work.querySelector('.series')?.textContent || ''), // TODO handle fics in multiple series
+                SeriesPosition: getAO3SeriesPos(thisSeries?.textContent || ''),
             }
             trimObjectValues(story)
             story.Summary = cleanHTML(story.Summary)
@@ -187,6 +187,14 @@
         const chaptersWritten = ao3ChapterCount.split('/')[0]
         const chaptersTotal = ao3ChapterCount.split('/')[1]
         return chaptersWritten === chaptersTotal
+    }
+
+    // If there is more than one series in the blurb, return only the current one
+    function getAO3SeriesEl(work, thisSeriesLink) {
+        const seriesEls = work.querySelectorAll('.series > li')
+        const href = thisSeriesLink.split('.org')[1] // href is like '/series/123456'
+        if (seriesEls.length < 2) { return seriesEls[0] }
+        return work.querySelector(`.series a[href="${href}"`).parentNode
     }
 
     // Return position in series
