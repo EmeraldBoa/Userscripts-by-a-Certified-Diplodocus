@@ -22,6 +22,7 @@ DONE
 
  MAYBEs
     [ ] get SeriesDesc, SeriesNotes by calling the page
+    [ ] add "source=AO3" (e.g.) - Access can use Parse to test
 
 !BUGS
 ----------------------------------------------------------------------------------------------------------------------
