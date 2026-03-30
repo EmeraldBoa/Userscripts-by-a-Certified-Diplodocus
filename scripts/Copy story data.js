@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Copy story data
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.3.1
+// @version      1.3.2
 // @description  copies story data from AO3/FFN for pasting into MS Access or markdown (reddit)
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/*
@@ -19,6 +19,7 @@ DONE
     [x] add SeriesURL (autofill when creating new series)
     [ ] show Part N of [SeriesName](SeriesURL) in markdown
     [ ] replace window.location.href with window.location.pathname (see https://developer.mozilla.org/en-US/docs/Web/API/Location) for AO3 ONLY!
+    [ ] get DatePublished, DateUpdated
 
  MAYBEs
     [ ] get SeriesDesc, SeriesNotes by calling the page
@@ -45,7 +46,9 @@ DONE
     const errPrefix = '[Copy Story Data - userscript] \n⚠ Error: '
 
     // Data formatting
-    const story = { Title: '', Link: '', Author: '', Summary: '', Wordcount: '', IsComplete: '', SeriesName: '', SeriesLink: '', SeriesPosition: '' }
+    const story = { Title: '', Link: '', Author: '', Summary: '', Wordcount: '', IsComplete: '', SeriesName: '', SeriesLink: '', SeriesPosition: '',
+        DatePublished: '', DateUpdated: '',
+    }
     Object.seal(story) // properties may be changed but not added, deleted or configured
 
     // Website & button settings
@@ -141,6 +144,8 @@ DONE
             SeriesName: seriesinfo?.querySelector('a')?.textContent || '',
             SeriesLink: seriesinfo?.querySelector('a')?.href || '',
             SeriesPosition: getAO3SeriesPos(seriesinfo?.textContent || ''),
+            DatePublished: meta.querySelector('dd.published').textContent,
+            DateUpdated: meta.querySelector('dd.status').textContent,
         })
         cleanSummaryHTML()
 
@@ -162,6 +167,7 @@ DONE
             SeriesName: seriesinfo?.querySelector('a')?.textContent || '',
             SeriesLink: seriesinfo?.querySelector('a')?.href || '',
             SeriesPosition: getAO3SeriesPos(seriesinfo?.textContent || ''),
+            DateUpdated: $('.header .datetime').textContent, // annoyingly, bookmarks do NOT show DatePublished!
         })
         cleanSummaryHTML()
 
@@ -180,8 +186,10 @@ DONE
             Link: currentURL,
             Author: ffnInfo.querySelector('a.xcontrast_txt[href^="/u/"]').textContent,
             Summary: ffnInfo.querySelector('div.xcontrast_txt').textContent,
-            Wordcount: details.replace(/.*Words: ([,\d]+).*/i, '$1'), //    Extract & clean with regex
-            IsComplete: details.includes(`Status: Complete`), //            return boolean
+            Wordcount: details.replace(/.*Words: ([,\d]+).*/i, '$1'), //        extract & clean with regex
+            IsComplete: details.includes(`Status: Complete`), //                return boolean
+            DatePublished: details.replace(/.*Published: ([^-]*) .*/i, '$1'),
+            DateUpdated: details.replace(/.*Updated: ([^-]*) .*/i, '$1'),
         })
 
         // Add copy buttons at top and bottom of page (after "favourite")
