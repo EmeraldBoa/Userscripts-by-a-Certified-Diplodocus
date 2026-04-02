@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Copy story data
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.3.2
+// @version      1.3.3
 // @description  copies story data from AO3/FFN for pasting into MS Access or markdown (reddit)
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/*
@@ -16,10 +16,8 @@
 DONE
 
  TO DOs
-    [x] add SeriesURL (autofill when creating new series)
     [ ] show Part N of [SeriesName](SeriesURL) in markdown
     [ ] replace window.location.href with window.location.pathname (see https://developer.mozilla.org/en-US/docs/Web/API/Location) for AO3 ONLY!
-    [ ] get DatePublished, DateUpdated
 
  MAYBEs
     [ ] get SeriesDesc, SeriesNotes by calling the page
@@ -145,7 +143,7 @@ DONE
             SeriesLink: seriesinfo?.querySelector('a')?.href || '',
             SeriesPosition: getAO3SeriesPos(seriesinfo?.textContent || ''),
             DatePublished: meta.querySelector('dd.published').textContent,
-            DateUpdated: meta.querySelector('dd.status').textContent,
+            DateUpdated: meta.querySelector('dd.status')?.textContent || '',
         })
         cleanSummaryHTML()
 
@@ -157,6 +155,8 @@ DONE
     } else if ((URLregex.AO3.bookmark).test(currentURL)) {
         const header = $$('.header h4.heading a')
         const seriesinfo = $('.series')
+        const bookmarkWorkDate = $('.header .datetime').textContent // annoyingly, bookmarks only show ONE date: published (single-chap) or updated (for multi-chap)
+        const isMultiChapter = $('dd.chapters').trim().split('/')[1] > 1
         Object.assign(story, {
             Title: header[0].textContent,
             Link: 'https://archiveofourown.org' + header[0].getAttribute('href'),
@@ -167,7 +167,8 @@ DONE
             SeriesName: seriesinfo?.querySelector('a')?.textContent || '',
             SeriesLink: seriesinfo?.querySelector('a')?.href || '',
             SeriesPosition: getAO3SeriesPos(seriesinfo?.textContent || ''),
-            DateUpdated: $('.header .datetime').textContent, // annoyingly, bookmarks do NOT show DatePublished!
+            DatePublished: isMultiChapter ? '' : bookmarkWorkDate, // bookmark shows date PUBLISHED for single-chapter works
+            DateUpdated: isMultiChapter ? bookmarkWorkDate : '', //   bookmark shows date UPDATED for multi-chapter works
         })
         cleanSummaryHTML()
 
@@ -189,7 +190,7 @@ DONE
             Wordcount: details.replace(/.*Words: ([,\d]+).*/i, '$1'), //        extract & clean with regex
             IsComplete: details.includes(`Status: Complete`), //                return boolean
             DatePublished: details.replace(/.*Published: ([^-]*) .*/i, '$1'),
-            DateUpdated: details.replace(/.*Updated: ([^-]*) .*/i, '$1'),
+            DateUpdated: (details.includes('Updated:') && details.replace(/.*Updated: ([^-]*) .*/i, '$1')) || '', // handle fics with no DateUpdated
         })
 
         // Add copy buttons at top and bottom of page (after "favourite")
