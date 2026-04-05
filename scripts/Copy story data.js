@@ -156,7 +156,7 @@ DONE
         const header = $$('.header h4.heading a')
         const seriesinfo = $('.series')
         const bookmarkWorkDate = $('.header .datetime').textContent // annoyingly, bookmarks only show ONE date: published (single-chap) or updated (for multi-chap)
-        const isMultiChapter = $('dd.chapters').trim().split('/')[1] > 1
+        const isMultiChapter = $('dd.chapters').textContent.trim().split('/')[1] > 1
         Object.assign(story, {
             Title: header[0].textContent,
             Link: 'https://archiveofourown.org' + header[0].getAttribute('href'),

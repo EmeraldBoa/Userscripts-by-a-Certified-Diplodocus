@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Copy AO3 series
 // @namespace    https://greasyfork.org/en/users/757649-certifieddiplodocus
-// @version      1.2.3
+// @version      1.2.4
 // @description  copies story data from AO3 for pasting into MS Access
 // @author       CertifiedDiplodocus
 // @match        http*://archiveofourown.org/series/*
@@ -94,6 +94,8 @@
         // iterate through stories
         $$('.work.blurb').forEach((work, i) => {
             const heading = work.querySelectorAll('h4.heading a')
+            const bookmarkWorkDate = work.querySelector('.datetime').textContent // only shows ONE date: published (single-chap) or updated (for multi-chap)
+            const isMultiChapter = work.querySelector('dd.chapters').textContent.trim().split('/')[1] > 1
             const stats = work.querySelector('.stats')
             const thisSeries = getAO3SeriesEl(work, seriesInfo.Link)
             const story = {
@@ -105,6 +107,8 @@
                 Wordcount: stats.querySelector('dd.words').textContent,
                 IsComplete: isAO3FicComplete(stats.querySelector('dd.chapters').textContent), // return boolean
                 SeriesPosition: getAO3SeriesPos(thisSeries?.textContent || ''),
+                DatePublished: isMultiChapter ? '' : bookmarkWorkDate,
+                DateUpdated: isMultiChapter ? bookmarkWorkDate : '',
             }
             trimObjectValues(story)
             story.Summary = cleanHTML(story.Summary)
